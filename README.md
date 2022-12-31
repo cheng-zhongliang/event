@@ -1,2 +1,2 @@
 # unicorn
-Simple event notification library wirtten in Golang
+Simple event notification library for Go
