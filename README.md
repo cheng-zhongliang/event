@@ -1,2 +1,2 @@
 # unicorn
-Simple event notification library for Go
+Simple network event notification library for Go
