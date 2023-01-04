@@ -1,17 +1,13 @@
 package unicorn
 
+type EventCallbackFn func(fd int, what EventType, arg interface{})
+
 type EventType uint32
 
 const (
-	EventTimeout EventType = iota
-	EventRead
-	EventWrite
-	EventPersist
-	EventET
-	EventLT
+	EventRead  EventType = 0x02
+	EventWrite EventType = 0x04
 )
-
-type EventCallbackFn func(fd int, what EventType, arg interface{})
 
 type Event struct {
 	fd   int
