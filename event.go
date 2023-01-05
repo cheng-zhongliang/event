@@ -1,21 +1,21 @@
 package unicorn
 
-type EventCallbackFn func(fd int, flags EventFlags, arg interface{})
+type EventCallbackFn func(fd int, flags EventFlag, arg interface{})
 
-type EventFlags uint32
+type EventFlag uint32
 
 const (
-	EventRead  EventFlags = 0x02
-	EventWrite EventFlags = 0x04
+	EventRead  EventFlag = 0x02
+	EventWrite EventFlag = 0x04
 )
 
 type Event struct {
 	fd    int
-	flags EventFlags
+	flags EventFlag
 	cb    EventCallbackFn
 	arg   interface{}
 }
 
-func NewEvent(fd int, flags EventFlags, cb EventCallbackFn, arg interface{}) Event {
+func NewEvent(fd int, flags EventFlag, cb EventCallbackFn, arg interface{}) Event {
 	return Event{fd, flags, cb, arg}
 }
