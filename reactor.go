@@ -2,16 +2,28 @@ package unicorn
 
 import "sync"
 
+type EventReactorConfig struct {
+	DemultiplexerType EventDemultiplexerType
+}
+
 type EventReactor struct {
+	C             EventReactorConfig
 	Demultiplexer EventDemultiplexer
 	Hanlder       EventHandler
 	sync.RWMutex
 }
 
-func NewEventReactor() *EventReactor {
-	return &EventReactor{
-		Hanlder: make(EventHandler, 0xFFFF),
+func NewEventReactor(c EventReactorConfig) (*EventReactor, error) {
+	switch c.DemultiplexerType {
+	case EPOLL:
+	case KQUEUE:
+	default:
+		return nil, ErrInvalidDemultiplexerType
 	}
+	return &EventReactor{
+		C:       c,
+		Hanlder: make(EventHandler, 0xFFFF),
+	}, nil
 }
 
 func (r *EventReactor) RegisterEvent(ev Event) error {
