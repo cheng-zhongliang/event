@@ -5,11 +5,13 @@ import "sync"
 type EventReactor struct {
 	Demultiplexer EventDemultiplexer
 	Hanlder       EventHandler
-	sync.Mutex
+	sync.RWMutex
 }
 
 func NewEventReactor() *EventReactor {
-	return &EventReactor{}
+	return &EventReactor{
+		Hanlder: make(EventHandler, 0xFFFF),
+	}
 }
 
 func (r *EventReactor) RegisterEvent(ev Event) error {
@@ -36,17 +38,32 @@ func (r *EventReactor) UnregisterEvent(ev Event) error {
 	return r.Demultiplexer.DelEvent(ev)
 }
 
+func (r *EventReactor) ModifyEvent(ev Event) error {
+	r.RLock()
+	defer r.RUnlock()
+
+	if _, ok := r.Hanlder[ev.fd]; !ok {
+		return ErrEventNotExists
+	}
+	r.Hanlder[ev.fd] = ev.handleFn
+
+	return r.Demultiplexer.ModEvent(ev)
+}
+
 func (r *EventReactor) React() error {
-	evs, err := r.Demultiplexer.WaitEvents()
-	if err != nil {
-		return err
-	}
-
-	for _, ev := range evs {
-		if handleFunc, ok := r.Hanlder[ev.fd]; ok {
-			handleFunc(ev)
+	evs := make([]Event, 0xFFFF)
+	for {
+		n, err := r.Demultiplexer.WaitEvents(evs)
+		if err != nil {
+			return err
 		}
-	}
 
-	return nil
+		r.RLock()
+		for i := 0; i < n; i++ {
+			if handleFunc, ok := r.Hanlder[evs[i].fd]; ok {
+				handleFunc(evs[i])
+			}
+		}
+		r.RUnlock()
+	}
 }
