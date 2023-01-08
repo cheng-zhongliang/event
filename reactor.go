@@ -12,14 +12,14 @@ func NewEventReactor() *EventReactor {
 	return &EventReactor{}
 }
 
-func (r *EventReactor) RegisterEvent(ev Event, handler HandleFunc) error {
+func (r *EventReactor) RegisterEvent(ev Event) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.Hanlder[ev]; ok {
+	if _, ok := r.Hanlder[ev.fd]; ok {
 		return ErrEventExists
 	}
-	r.Hanlder[ev] = handler
+	r.Hanlder[ev.fd] = ev.handleFn
 
 	return r.Demultiplexer.AddEvent(ev)
 }
@@ -28,7 +28,10 @@ func (r *EventReactor) UnregisterEvent(ev Event) error {
 	r.Lock()
 	defer r.Unlock()
 
-	delete(r.Hanlder, ev)
+	if _, ok := r.Hanlder[ev.fd]; !ok {
+		return ErrEventNotExists
+	}
+	delete(r.Hanlder, ev.fd)
 
 	return r.Demultiplexer.DelEvent(ev)
 }
@@ -40,7 +43,7 @@ func (r *EventReactor) React() error {
 	}
 
 	for _, ev := range evs {
-		if handleFunc, ok := r.Hanlder[ev]; ok {
+		if handleFunc, ok := r.Hanlder[ev.fd]; ok {
 			handleFunc(ev)
 		}
 	}
