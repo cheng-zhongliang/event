@@ -13,17 +13,27 @@ type EventReactor struct {
 	sync.RWMutex
 }
 
-func NewEventReactor(c EventReactorConfig) (*EventReactor, error) {
+func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) {
+	var demultiplexer EventDemultiplexer
 	switch c.DemultiplexerType {
 	case EPOLL:
+		demultiplexer, err = NewEpoll()
 	case KQUEUE:
+		fallthrough
 	default:
-		return nil, ErrInvalidDemultiplexerType
+		err = ErrInvalidDemultiplexerType
 	}
-	return &EventReactor{
-		C:       c,
-		Hanlder: make(EventHandler),
-	}, nil
+	if err != nil {
+		return nil, err
+	}
+
+	evReactor = &EventReactor{
+		C:             c,
+		Demultiplexer: demultiplexer,
+		Hanlder:       make(EventHandler),
+	}
+
+	return
 }
 
 func (r *EventReactor) RegisterEvent(ev Event) error {
