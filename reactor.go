@@ -22,7 +22,7 @@ func NewEventReactor(c EventReactorConfig) (*EventReactor, error) {
 	}
 	return &EventReactor{
 		C:       c,
-		Hanlder: make(EventHandler, 0xFFFF),
+		Hanlder: make(EventHandler),
 	}, nil
 }
 
@@ -63,19 +63,20 @@ func (r *EventReactor) ModifyEvent(ev Event) error {
 }
 
 func (r *EventReactor) React() error {
-	evs := make([]Event, 0xFFFF)
 	for {
-		n, err := r.Demultiplexer.WaitEvents(evs)
+		readyEvs, err := r.Demultiplexer.WaitActiveEvents()
 		if err != nil {
 			return err
 		}
 
 		r.RLock()
-		for i := 0; i < n; i++ {
-			if handleFunc, ok := r.Hanlder[evs[i].fd]; ok {
-				handleFunc(evs[i])
-			}
+		for _, ev := range readyEvs {
+			ev.handleFn = r.Hanlder[ev.fd]
 		}
 		r.RUnlock()
+
+		for _, ev := range readyEvs {
+			ev.handleFn(ev)
+		}
 	}
 }
