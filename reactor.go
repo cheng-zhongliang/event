@@ -3,6 +3,7 @@ package unicorn
 import "sync"
 
 type EventReactorConfig struct {
+	Capacity          int
 	DemultiplexerType EventDemultiplexerType
 }
 
@@ -30,7 +31,7 @@ func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) 
 	evReactor = &EventReactor{
 		C:             c,
 		Demultiplexer: demultiplexer,
-		Hanlder:       make(EventHandler, 1024),
+		Hanlder:       make(EventHandler, c.Capacity),
 	}
 
 	return
@@ -73,8 +74,8 @@ func (r *EventReactor) ModifyEvent(ev Event) error {
 }
 
 func (r *EventReactor) React() error {
-	activeEvents := make([]Event, 1024)
-	callbacks := make([]EventCallback, 1024)
+	activeEvents := make([]Event, r.C.Capacity)
+	callbacks := make([]EventCallback, r.C.Capacity)
 	for {
 		n, err := r.Demultiplexer.WaitActiveEvents(activeEvents)
 		if err != nil {
