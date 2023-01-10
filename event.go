@@ -8,16 +8,11 @@ const (
 )
 
 type Event struct {
-	fd     int
-	flags  uint32
-	handleFn HandleFunc
+	fd       int
+	flag     EventFlag
+	handleFn EventCallback
 }
 
-func NewEvent(fd int, flags []EventFlag, fn HandleFunc) (ev Event) {
-	ev.fd = fd
-	ev.handleFn = fn
-	for _, flag := range flags {
-		ev.flags |= uint32(flag)
-	}
-	return
+func NewEvent(fd int, flag EventFlag, fn EventCallback) (ev Event) {
+	return Event{fd, flag, fn}
 }

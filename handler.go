@@ -1,5 +1,5 @@
 package unicorn
 
-type HandleFunc func(ev Event)
+type EventCallback func(ev Event)
 
-type EventHandler = map[int]HandleFunc
+type EventHandler = map[int]EventCallback
