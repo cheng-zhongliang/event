@@ -11,5 +11,5 @@ type EventDemultiplexer interface {
 	AddEvent(ev Event) error
 	DelEvent(ev Event) error
 	ModEvent(ev Event) error
-	WaitActiveEvents() ([]Event, error)
+	WaitActiveEvents(activeEvents []Event) (n int, err error)
 }

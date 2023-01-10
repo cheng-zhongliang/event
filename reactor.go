@@ -30,7 +30,7 @@ func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) 
 	evReactor = &EventReactor{
 		C:             c,
 		Demultiplexer: demultiplexer,
-		Hanlder:       make(EventHandler),
+		Hanlder:       make(EventHandler, 1024),
 	}
 
 	return
@@ -43,7 +43,7 @@ func (r *EventReactor) RegisterEvent(ev Event) error {
 	if _, ok := r.Hanlder[ev.fd]; ok {
 		return ErrEventExists
 	}
-	r.Hanlder[ev.fd] = ev.handleFn
+	r.Hanlder[ev.fd] = ev.callback
 
 	return r.Demultiplexer.AddEvent(ev)
 }
@@ -67,26 +67,28 @@ func (r *EventReactor) ModifyEvent(ev Event) error {
 	if _, ok := r.Hanlder[ev.fd]; !ok {
 		return ErrEventNotExists
 	}
-	r.Hanlder[ev.fd] = ev.handleFn
+	r.Hanlder[ev.fd] = ev.callback
 
 	return r.Demultiplexer.ModEvent(ev)
 }
 
 func (r *EventReactor) React() error {
+	activeEvents := make([]Event, 1024)
+	callbacks := make([]EventCallback, 1024)
 	for {
-		readyEvs, err := r.Demultiplexer.WaitActiveEvents()
+		n, err := r.Demultiplexer.WaitActiveEvents(activeEvents)
 		if err != nil {
 			return err
 		}
 
 		r.RLock()
-		for _, ev := range readyEvs {
-			ev.handleFn = r.Hanlder[ev.fd]
+		for i := 0; i < n; i++ {
+			callbacks[i] = r.Hanlder[activeEvents[i].fd]
 		}
 		r.RUnlock()
 
-		for _, ev := range readyEvs {
-			ev.handleFn(ev)
+		for i := 0; i < n; i++ {
+			callbacks[i](activeEvents[i])
 		}
 	}
 }

@@ -10,7 +10,7 @@ const (
 type Event struct {
 	fd       int
 	flag     EventFlag
-	handleFn EventCallback
+	callback EventCallback
 }
 
 func NewEvent(fd int, flag EventFlag, fn EventCallback) (ev Event) {

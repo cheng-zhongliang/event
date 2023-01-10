@@ -3,7 +3,7 @@ package unicorn
 import "golang.org/x/sys/unix"
 
 type Epoll struct {
-	BaseFd int
+	Fd int
 }
 
 func NewEpoll() (*Epoll, error) {
@@ -12,22 +12,41 @@ func NewEpoll() (*Epoll, error) {
 		return nil, err
 	}
 	return &Epoll{
-		BaseFd: fd,
+		Fd: fd,
 	}, nil
 }
 
 func (ep *Epoll) AddEvent(ev Event) error {
-	return nil
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.fd, &unix.EpollEvent{Events: uint32(ev.flag), Fd: int32(ev.fd)})
 }
 
 func (ep *Epoll) DelEvent(ev Event) error {
-	return nil
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_DEL, ev.fd, nil)
 }
 
 func (ep *Epoll) ModEvent(ev Event) error {
-	return nil
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.fd, &unix.EpollEvent{Events: uint32(ev.flag), Fd: int32(ev.fd)})
 }
 
-func (ep *Epoll) WaitActiveEvents() ([]Event, error) {
-	return nil, nil
+func (ep *Epoll) WaitActiveEvents(activeEvents []Event) (n int, err error) {
+	var events []unix.EpollEvent
+	if nn := len(activeEvents); nn > 0 {
+		events = make([]unix.EpollEvent, nn)
+	} else {
+		return 0, nil
+	}
+
+	n, err = unix.EpollWait(ep.Fd, events, -1)
+	if err != nil {
+		return 0, err
+	}
+
+	for i := 0; i < n; i++ {
+		activeEvents[i] = Event{
+			fd:   int(events[i].Fd),
+			flag: EventFlag(events[i].Events),
+		}
+	}
+
+	return n, nil
 }
