@@ -37,7 +37,7 @@ func (ep *Epoll) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 	}
 
 	n, err = unix.EpollWait(ep.Fd, events, -1)
-	if err != nil {
+	if err != nil && !TemporaryErr(err) {
 		return 0, err
 	}
 
