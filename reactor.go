@@ -37,14 +37,14 @@ func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) 
 	return
 }
 
-func (r *EventReactor) RegisterEvent(ev Event) error {
+func (r *EventReactor) RegisterEvent(ev Event, fn EventCallback) error {
 	r.Lock()
 	defer r.Unlock()
 
 	if _, ok := r.Hanlder[ev.fd]; ok {
 		return ErrEventExists
 	}
-	r.Hanlder[ev.fd] = ev.callback
+	r.Hanlder[ev.fd] = fn
 
 	return r.Demultiplexer.AddEvent(ev)
 }
@@ -61,14 +61,14 @@ func (r *EventReactor) UnregisterEvent(ev Event) error {
 	return r.Demultiplexer.DelEvent(ev)
 }
 
-func (r *EventReactor) ModifyEvent(ev Event) error {
+func (r *EventReactor) ModifyEvent(ev Event, fn EventCallback) error {
 	r.RLock()
 	defer r.RUnlock()
 
 	if _, ok := r.Hanlder[ev.fd]; !ok {
 		return ErrEventNotExists
 	}
-	r.Hanlder[ev.fd] = ev.callback
+	r.Hanlder[ev.fd] = fn
 
 	return r.Demultiplexer.ModEvent(ev)
 }

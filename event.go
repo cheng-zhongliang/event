@@ -8,11 +8,10 @@ const (
 )
 
 type Event struct {
-	fd       int
-	flag     EventFlag
-	callback EventCallback
+	fd   int
+	flag EventFlag
 }
 
-func NewEvent(fd int, flag EventFlag, fn EventCallback) (ev Event) {
-	return Event{fd, flag, fn}
+func NewEvent(fd int, flag EventFlag) (ev Event) {
+	return Event{fd, flag}
 }
