@@ -17,7 +17,7 @@ func NewEpoll() (*Epoll, error) {
 }
 
 func (ep *Epoll) AddEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.fd, &unix.EpollEvent{Events: uint32(ev.flag), Fd: int32(ev.fd)})
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.fd, ep.UnNormalizeEvent(ev).(*unix.EpollEvent))
 }
 
 func (ep *Epoll) DelEvent(ev Event) error {
@@ -25,7 +25,7 @@ func (ep *Epoll) DelEvent(ev Event) error {
 }
 
 func (ep *Epoll) ModEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.fd, &unix.EpollEvent{Events: uint32(ev.flag), Fd: int32(ev.fd)})
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.fd, ep.UnNormalizeEvent(ev).(*unix.EpollEvent))
 }
 
 func (ep *Epoll) WaitActiveEvents(activeEvents []Event) (n int, err error) {
@@ -42,11 +42,39 @@ func (ep *Epoll) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 	}
 
 	for i := 0; i < n; i++ {
-		activeEvents[i] = Event{
-			fd:   int(events[i].Fd),
-			flag: EventFlag(events[i].Events),
-		}
+		activeEvents[i] = ep.NormalizeEvent(&events[i])
 	}
 
 	return n, nil
+}
+
+func (ep *Epoll) NormalizeEvent(epollEv interface{}) (ev Event) {
+	epEv, ok := epollEv.(*unix.EpollEvent)
+	if !ok {
+		return
+	}
+
+	ev.fd = int(epEv.Fd)
+
+	if epEv.Events&unix.EPOLLIN != 0 {
+		ev.flag |= EventRead
+	}
+	if epEv.Events&unix.EPOLLOUT != 0 {
+		ev.flag |= EventWrite
+	}
+
+	return
+}
+
+func (ep *Epoll) UnNormalizeEvent(ev Event) (epollEv interface{}) {
+	epEv := &unix.EpollEvent{}
+	if ev.flag&EventRead != 0 {
+		epEv.Events |= unix.EPOLLIN
+	}
+	if ev.flag&EventWrite != 0 {
+		epEv.Events |= unix.EPOLLOUT
+	}
+	epEv.Fd = int32(ev.fd)
+
+	return epEv
 }
