@@ -5,7 +5,7 @@
 <br>
 </p>
 
-`unicorn` is a simple network event notification library for Go
+`unicorn` is a simple network event notification library for Go.
 
 `unicorn` is standard reactor architecture.
 
