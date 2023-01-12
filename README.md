@@ -16,5 +16,5 @@
 ## Features
 
 - Simple API
-- Low memory usage
 - Standard reactor architecture
+- Low memory usage
