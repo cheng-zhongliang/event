@@ -12,6 +12,4 @@ type EventDemultiplexer interface {
 	DelEvent(ev Event) error
 	ModEvent(ev Event) error
 	WaitActiveEvents(activeEvents []Event) (n int, err error)
-	NormalizeEvent(interface{}) Event      // convert from platform specific event to Event
-	UnNormalizeEvent(ev Event) interface{} // convert from Event to platform specific event
 }
