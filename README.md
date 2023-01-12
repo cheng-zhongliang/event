@@ -9,7 +9,7 @@
 
 `unicorn` is standard reactor architecture.
 
-`unicorn` supports epoll on Linux and kqueue on Unix.
+`unicorn` supports epoll on Linux ~~and kqueue on Unix~~.
 
 *Note: Unicorn is more suitable for beginners who want to learn I/O multiplexing.*
 
