@@ -13,7 +13,7 @@
 
 *Note: Unicorn is more suitable for beginners who want to learn I/O multiplexing.*
 
-*Note: All development is done on a Raspberry Pi 4B*
+*Note: All development is done on a Raspberry Pi 4B.*
 
 ## Features
 
