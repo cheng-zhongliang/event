@@ -25,7 +25,7 @@ func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) 
 		err = ErrInvalidDemultiplexerType
 	}
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	evReactor = &EventReactor{
