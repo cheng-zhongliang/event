@@ -3,7 +3,8 @@
     src="logo.png" 
     width="213" height="75" border="0" alt="unicorn">
 <br>
-<a href="https://godoc.org/github.com/cheng-zhongliang/unicorn"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
+<a href="https://godoc.org/github.com/cheng-zhongliang/unicorn"><img src="https://img.shields.io/badge/go-reference-blue" alt="GoDoc"></a>
+<a href="https://github.com/cheng-zhongliang/unicorn/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen" alt="GoDoc"></a>
 </p>
 
 `unicorn` is a network I/O event notification library for Go.
