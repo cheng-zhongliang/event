@@ -2,33 +2,33 @@ package unicorn
 
 import "golang.org/x/sys/unix"
 
-type Epoll struct {
+type Epoller struct {
 	Fd int
 }
 
-func NewEpoll() (*Epoll, error) {
+func NewEpoller() (*Epoller, error) {
 	fd, err := unix.EpollCreate1(unix.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, err
 	}
-	return &Epoll{
+	return &Epoller{
 		Fd: fd,
 	}, nil
 }
 
-func (ep *Epoll) AddEvent(ev Event) error {
+func (ep *Epoller) AddEvent(ev Event) error {
 	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.fd, ep.stdEv2epEv(ev))
 }
 
-func (ep *Epoll) DelEvent(ev Event) error {
+func (ep *Epoller) DelEvent(ev Event) error {
 	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_DEL, ev.fd, nil)
 }
 
-func (ep *Epoll) ModEvent(ev Event) error {
+func (ep *Epoller) ModEvent(ev Event) error {
 	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.fd, ep.stdEv2epEv(ev))
 }
 
-func (ep *Epoll) WaitActiveEvents(activeEvents []Event) (n int, err error) {
+func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 	var events []unix.EpollEvent
 	if nn := len(activeEvents); nn > 0 {
 		events = make([]unix.EpollEvent, nn)
@@ -48,7 +48,7 @@ func (ep *Epoll) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 	return n, nil
 }
 
-func (ep *Epoll) epEv2StdEv(epEv unix.EpollEvent) (stdEv Event) {
+func (ep *Epoller) epEv2StdEv(epEv unix.EpollEvent) (stdEv Event) {
 	stdEv.fd = int(epEv.Fd)
 	if epEv.Events&unix.EPOLLIN != 0 {
 		stdEv.flag |= EventRead
@@ -59,7 +59,7 @@ func (ep *Epoll) epEv2StdEv(epEv unix.EpollEvent) (stdEv Event) {
 	return
 }
 
-func (ep *Epoll) stdEv2epEv(stdEv Event) (epEv *unix.EpollEvent) {
+func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *unix.EpollEvent) {
 	if stdEv.flag&EventRead != 0 {
 		epEv.Events |= unix.EPOLLIN
 	}

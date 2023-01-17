@@ -3,8 +3,8 @@ package unicorn
 type EventDemultiplexerType int
 
 const (
-	EPOLL EventDemultiplexerType = iota
-	KQUEUE
+	Epoll EventDemultiplexerType = iota
+	Kqueue
 )
 
 type EventDemultiplexer interface {

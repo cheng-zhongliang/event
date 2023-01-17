@@ -17,9 +17,9 @@ type EventReactor struct {
 func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) {
 	var demultiplexer EventDemultiplexer
 	switch c.DemultiplexerType {
-	case EPOLL:
-		demultiplexer, err = NewEpoll()
-	case KQUEUE:
+	case Epoll:
+		demultiplexer, err = NewEpoller()
+	case Kqueue:
 		fallthrough
 	default:
 		err = ErrInvalidDemultiplexerType
