@@ -41,10 +41,10 @@ func (r *EventReactor) RegisterEvent(ev Event, fn EventCallback) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.Hanlder[ev.fd]; ok {
+	if _, ok := r.Hanlder[ev.Fd]; ok {
 		return ErrEventExists
 	}
-	r.Hanlder[ev.fd] = fn
+	r.Hanlder[ev.Fd] = fn
 
 	return r.Demultiplexer.AddEvent(ev)
 }
@@ -53,10 +53,10 @@ func (r *EventReactor) UnregisterEvent(ev Event) error {
 	r.Lock()
 	defer r.Unlock()
 
-	if _, ok := r.Hanlder[ev.fd]; !ok {
+	if _, ok := r.Hanlder[ev.Fd]; !ok {
 		return ErrEventNotExists
 	}
-	delete(r.Hanlder, ev.fd)
+	delete(r.Hanlder, ev.Fd)
 
 	return r.Demultiplexer.DelEvent(ev)
 }
@@ -65,10 +65,10 @@ func (r *EventReactor) ModifyEvent(ev Event, fn EventCallback) error {
 	r.RLock()
 	defer r.RUnlock()
 
-	if _, ok := r.Hanlder[ev.fd]; !ok {
+	if _, ok := r.Hanlder[ev.Fd]; !ok {
 		return ErrEventNotExists
 	}
-	r.Hanlder[ev.fd] = fn
+	r.Hanlder[ev.Fd] = fn
 
 	return r.Demultiplexer.ModEvent(ev)
 }
@@ -84,7 +84,7 @@ func (r *EventReactor) React() error {
 
 		r.RLock()
 		for i := 0; i < n; i++ {
-			callbacks[i] = r.Hanlder[activeEvents[i].fd]
+			callbacks[i] = r.Hanlder[activeEvents[i].Fd]
 		}
 		r.RUnlock()
 

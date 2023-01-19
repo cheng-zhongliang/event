@@ -8,8 +8,8 @@ const (
 )
 
 type Event struct {
-	fd   int
-	flag EventFlag
+	Fd   int
+	Flag EventFlag
 }
 
 func NewEvent(fd int, flag EventFlag) (ev Event) {

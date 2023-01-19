@@ -17,15 +17,15 @@ func NewEpoller() (*Epoller, error) {
 }
 
 func (ep *Epoller) AddEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.fd, ep.stdEv2epEv(ev))
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.Fd, ep.stdEv2epEv(ev))
 }
 
 func (ep *Epoller) DelEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_DEL, ev.fd, nil)
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_DEL, ev.Fd, nil)
 }
 
 func (ep *Epoller) ModEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.fd, ep.stdEv2epEv(ev))
+	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.Fd, ep.stdEv2epEv(ev))
 }
 
 func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
@@ -49,23 +49,23 @@ func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 }
 
 func (ep *Epoller) epEv2StdEv(epEv unix.EpollEvent) (stdEv Event) {
-	stdEv.fd = int(epEv.Fd)
+	stdEv.Fd = int(epEv.Fd)
 	if epEv.Events&unix.EPOLLIN != 0 {
-		stdEv.flag |= EventRead
+		stdEv.Flag |= EventRead
 	}
 	if epEv.Events&unix.EPOLLOUT != 0 {
-		stdEv.flag |= EventWrite
+		stdEv.Flag |= EventWrite
 	}
 	return
 }
 
 func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *unix.EpollEvent) {
-	if stdEv.flag&EventRead != 0 {
+	if stdEv.Flag&EventRead != 0 {
 		epEv.Events |= unix.EPOLLIN
 	}
-	if stdEv.flag&EventWrite != 0 {
+	if stdEv.Flag&EventWrite != 0 {
 		epEv.Events |= unix.EPOLLOUT
 	}
-	epEv.Fd = int32(stdEv.fd)
+	epEv.Fd = int32(stdEv.Fd)
 	return epEv
 }
