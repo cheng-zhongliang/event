@@ -33,19 +33,19 @@ func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 	if nn := len(activeEvents); nn > 0 {
 		events = make([]unix.EpollEvent, nn)
 	} else {
-		return 0, nil
+		return
 	}
 
 	n, err = unix.EpollWait(ep.Fd, events, -1)
 	if err != nil && !TemporaryErr(err) {
-		return 0, err
+		return
 	}
 
 	for i := 0; i < n; i++ {
 		activeEvents[i] = ep.epEv2StdEv(events[i])
 	}
 
-	return n, nil
+	return
 }
 
 func (ep *Epoller) epEv2StdEv(epEv unix.EpollEvent) (stdEv Event) {
@@ -67,5 +67,5 @@ func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *unix.EpollEvent) {
 		epEv.Events |= unix.EPOLLOUT
 	}
 	epEv.Fd = int32(stdEv.Fd)
-	return epEv
+	return
 }
