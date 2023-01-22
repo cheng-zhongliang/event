@@ -1,13 +1,15 @@
 package unicorn
 
-import "golang.org/x/sys/unix"
+import (
+	"syscall"
+)
 
 type Epoller struct {
 	Fd int
 }
 
 func NewEpoller() (*Epoller, error) {
-	fd, err := unix.EpollCreate1(unix.EPOLL_CLOEXEC)
+	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, err
 	}
@@ -17,26 +19,26 @@ func NewEpoller() (*Epoller, error) {
 }
 
 func (ep *Epoller) AddEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_ADD, ev.Fd, ep.stdEv2epEv(ev))
+	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_ADD, ev.Fd, ep.stdEv2epEv(ev))
 }
 
 func (ep *Epoller) DelEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_DEL, ev.Fd, nil)
+	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_DEL, ev.Fd, nil)
 }
 
 func (ep *Epoller) ModEvent(ev Event) error {
-	return unix.EpollCtl(ep.Fd, unix.EPOLL_CTL_MOD, ev.Fd, ep.stdEv2epEv(ev))
+	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_MOD, ev.Fd, ep.stdEv2epEv(ev))
 }
 
 func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
-	var events []unix.EpollEvent
+	var events []syscall.EpollEvent
 	if nn := len(activeEvents); nn > 0 {
-		events = make([]unix.EpollEvent, nn)
+		events = make([]syscall.EpollEvent, nn)
 	} else {
 		return
 	}
 
-	n, err = unix.EpollWait(ep.Fd, events, -1)
+	n, err = syscall.EpollWait(ep.Fd, events, -1)
 	if err != nil && !TemporaryErr(err) {
 		return
 	}
@@ -48,23 +50,23 @@ func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
 	return
 }
 
-func (ep *Epoller) epEv2StdEv(epEv unix.EpollEvent) (stdEv Event) {
+func (ep *Epoller) epEv2StdEv(epEv syscall.EpollEvent) (stdEv Event) {
 	stdEv.Fd = int(epEv.Fd)
-	if epEv.Events&unix.EPOLLIN != 0 {
+	if epEv.Events&syscall.EPOLLIN != 0 {
 		stdEv.Flag |= EventRead
 	}
-	if epEv.Events&unix.EPOLLOUT != 0 {
+	if epEv.Events&syscall.EPOLLOUT != 0 {
 		stdEv.Flag |= EventWrite
 	}
 	return
 }
 
-func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *unix.EpollEvent) {
+func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *syscall.EpollEvent) {
 	if stdEv.Flag&EventRead != 0 {
-		epEv.Events |= unix.EPOLLIN
+		epEv.Events |= syscall.EPOLLIN
 	}
 	if stdEv.Flag&EventWrite != 0 {
-		epEv.Events |= unix.EPOLLOUT
+		epEv.Events |= syscall.EPOLLOUT
 	}
 	epEv.Fd = int32(stdEv.Fd)
 	return
