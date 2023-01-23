@@ -5,8 +5,8 @@ import (
 )
 
 type Epoller struct {
-	Fd          int
-	ActiveEpEvs []syscall.EpollEvent
+	Fd        int
+	ActiveEvs []syscall.EpollEvent
 }
 
 func NewEpoller(capacity int) (*Epoller, error) {
@@ -15,8 +15,8 @@ func NewEpoller(capacity int) (*Epoller, error) {
 		return nil, err
 	}
 	return &Epoller{
-		Fd:          fd,
-		ActiveEpEvs: make([]syscall.EpollEvent, capacity),
+		Fd:        fd,
+		ActiveEvs: make([]syscall.EpollEvent, capacity),
 	}, nil
 }
 
@@ -33,12 +33,12 @@ func (ep *Epoller) ModEvent(ev Event) error {
 }
 
 func (ep *Epoller) WaitActiveEvents(evs []Event) (n int, err error) {
-	n, err = syscall.EpollWait(ep.Fd, ep.ActiveEpEvs, -1)
+	n, err = syscall.EpollWait(ep.Fd, ep.ActiveEvs, -1)
 	if err != nil && !TemporaryErr(err) {
 		return
 	}
 	for i := 0; i < n; i++ {
-		evs[i] = ep.epEv2StdEv(ep.ActiveEpEvs[i])
+		evs[i] = ep.epEv2StdEv(ep.ActiveEvs[i])
 	}
 	return
 }
