@@ -18,7 +18,7 @@ func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) 
 	var demultiplexer EventDemultiplexer
 	switch c.DemultiplexerType {
 	case Epoll:
-		demultiplexer, err = NewEpoller()
+		demultiplexer, err = NewEpoller(c.Capacity)
 	case Kqueue:
 		fallthrough
 	default:

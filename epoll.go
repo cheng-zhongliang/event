@@ -5,16 +5,18 @@ import (
 )
 
 type Epoller struct {
-	Fd int
+	Fd          int
+	ActiveEpEvs []syscall.EpollEvent
 }
 
-func NewEpoller() (*Epoller, error) {
+func NewEpoller(capacity int) (*Epoller, error) {
 	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, err
 	}
 	return &Epoller{
-		Fd: fd,
+		Fd:          fd,
+		ActiveEpEvs: make([]syscall.EpollEvent, capacity),
 	}, nil
 }
 
@@ -30,23 +32,14 @@ func (ep *Epoller) ModEvent(ev Event) error {
 	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_MOD, ev.Fd, ep.stdEv2epEv(ev))
 }
 
-func (ep *Epoller) WaitActiveEvents(activeEvents []Event) (n int, err error) {
-	var events []syscall.EpollEvent
-	if nn := len(activeEvents); nn > 0 {
-		events = make([]syscall.EpollEvent, nn)
-	} else {
-		return
-	}
-
-	n, err = syscall.EpollWait(ep.Fd, events, -1)
+func (ep *Epoller) WaitActiveEvents(activeStdEvs []Event) (n int, err error) {
+	n, err = syscall.EpollWait(ep.Fd, ep.ActiveEpEvs, -1)
 	if err != nil && !TemporaryErr(err) {
 		return
 	}
-
 	for i := 0; i < n; i++ {
-		activeEvents[i] = ep.epEv2StdEv(events[i])
+		activeStdEvs[i] = ep.epEv2StdEv(ep.ActiveEpEvs[i])
 	}
-
 	return
 }
 
