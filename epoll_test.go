@@ -137,7 +137,7 @@ func TestEpollerWaitActiveEvents(t *testing.T) {
 		t.Error("n != 1")
 	}
 	if evs[0].Fd != int(r0) {
-		t.Error("evs[0].Fd != int(r0)")
+		t.Errorf("evs[0].Fd != %d", r0)
 	}
 	if evs[0].Flag != EventRead {
 		t.Error("evs[0].Flag != EventRead")
