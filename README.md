@@ -16,4 +16,4 @@
 - Simple API
 - High performance
 - Low memory usage
-- Cross-platform
+- ~Cross-platform~
