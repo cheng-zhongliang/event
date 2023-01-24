@@ -43,6 +43,10 @@ func (ep *Epoller) WaitActiveEvents(evs []Event) (n int, err error) {
 	return
 }
 
+func (ep *Epoller) Close() error {
+	return syscall.Close(ep.Fd)
+}
+
 func (ep *Epoller) epEv2StdEv(epEv syscall.EpollEvent) (stdEv Event) {
 	stdEv.Fd = int(epEv.Fd)
 	if epEv.Events&syscall.EPOLLIN != 0 {
@@ -55,6 +59,7 @@ func (ep *Epoller) epEv2StdEv(epEv syscall.EpollEvent) (stdEv Event) {
 }
 
 func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *syscall.EpollEvent) {
+	epEv = new(syscall.EpollEvent)
 	if stdEv.Flag&EventRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
 	}
