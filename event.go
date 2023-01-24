@@ -11,7 +11,3 @@ type Event struct {
 	Fd   int
 	Flag EventFlag
 }
-
-func NewEvent(fd int, flag EventFlag) (ev Event) {
-	return Event{fd, flag}
-}
