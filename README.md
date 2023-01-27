@@ -17,5 +17,4 @@
 - High performance
 - Low memory usage
 - Lock-free
-- Zero GC
 - ~Cross-platform~
