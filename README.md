@@ -30,20 +30,9 @@ $ go get -u github.com/cheng-zhongliang/unicorn
 
 ### Usage
 
-It's easy to use `unicorn` to monitor I/O events. Just need to create an event reactor. Register for events you are interested in. Then, call the `React` method to start the event monitoring loop.
+It's easy to use `unicorn` to monitor I/O events. Just need to create an event reactor. Register for events you are interested in. Then, call the `React` method to start the event monitoring loop. When the event fires, the callback function will be called.
 
 ```go
-package main
-
-import (
-    "fmt"
-    "log"
-    "net"
-    "time"
-
-    "github.com/cheng-zhongliang/unicorn"
-)
-
 package main
 
 import (
