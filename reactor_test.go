@@ -26,12 +26,10 @@ func TestReactorRegisterEvent(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
 		t.Error(errno)
 	}
-
 	ev := Event{
 		Fd:   int(r0),
 		Flag: EventRead,
@@ -39,7 +37,6 @@ func TestReactorRegisterEvent(t *testing.T) {
 	if err := r.RegisterEvent(ev, func(ev Event) {}); err != nil {
 		t.Error(err)
 	}
-
 	if err := r.CoolOff(); err != nil {
 		t.Error(err)
 	}
@@ -56,12 +53,10 @@ func TestReactorUnregisterEvent(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
 		t.Error(errno)
 	}
-
 	ev := Event{
 		Fd:   int(r0),
 		Flag: EventRead,
@@ -72,7 +67,6 @@ func TestReactorUnregisterEvent(t *testing.T) {
 	if err := r.UnregisterEvent(ev); err != nil {
 		t.Error(err)
 	}
-
 	if err := r.CoolOff(); err != nil {
 		t.Error(err)
 	}
@@ -89,17 +83,10 @@ func TestReact(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
 		t.Error(errno)
 	}
-	defer func() {
-		if err := syscall.Close(int(r0)); err != nil {
-			t.Error(err)
-		}
-	}()
-
 	ev := Event{
 		Fd:   int(r0),
 		Flag: EventRead,
@@ -111,7 +98,6 @@ func TestReact(t *testing.T) {
 		if ev.Fd != int(r0) {
 			t.Errorf("ev.Fd != %d", r0)
 		}
-
 		n, err := syscall.Read(int(r0), make([]byte, 8))
 		if err != nil {
 			t.Error(err)
@@ -119,25 +105,23 @@ func TestReact(t *testing.T) {
 		if n != 8 {
 			t.Error("read: n != 8")
 		}
-
 		if err := r.CoolOff(); err != nil {
 			t.Error(err)
 		}
 	}); err != nil {
 		t.Error(err)
 	}
-
-	go func() {
-		n, err := syscall.Write(int(r0), []byte{0, 0, 0, 0, 0, 0, 0, 1})
-		if err != nil {
-			t.Error(err)
-		}
-		if n != 8 {
-			t.Error("write: n != 8")
-		}
-	}()
-
+	n, err := syscall.Write(int(r0), []byte{0, 0, 0, 0, 0, 0, 0, 1})
+	if err != nil {
+		t.Error(err)
+	}
+	if n != 8 {
+		t.Error("write: n != 8")
+	}
 	if err := r.React(); err != nil && err.Error() != "bad file descriptor" {
+		t.Error(err)
+	}
+	if err := syscall.Close(int(r0)); err != nil {
 		t.Error(err)
 	}
 }
