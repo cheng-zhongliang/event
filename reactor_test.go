@@ -6,10 +6,7 @@ import (
 )
 
 func TestNewReactor(t *testing.T) {
-	r, err := NewEventReactor(EventReactorConfig{
-		Capacity:          10,
-		DemultiplexerType: Epoll,
-	})
+	r, err := NewEventReactor(10, Epoll)
 	if err != nil {
 		t.Error(err)
 	}
@@ -19,10 +16,7 @@ func TestNewReactor(t *testing.T) {
 }
 
 func TestReactorRegisterEvent(t *testing.T) {
-	r, err := NewEventReactor(EventReactorConfig{
-		Capacity:          10,
-		DemultiplexerType: Epoll,
-	})
+	r, err := NewEventReactor(10, Epoll)
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,10 +40,7 @@ func TestReactorRegisterEvent(t *testing.T) {
 }
 
 func TestReactorUnregisterEvent(t *testing.T) {
-	r, err := NewEventReactor(EventReactorConfig{
-		Capacity:          10,
-		DemultiplexerType: Epoll,
-	})
+	r, err := NewEventReactor(10, Epoll)
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,10 +67,7 @@ func TestReactorUnregisterEvent(t *testing.T) {
 }
 
 func TestReact(t *testing.T) {
-	r, err := NewEventReactor(EventReactorConfig{
-		Capacity:          10,
-		DemultiplexerType: Epoll,
-	})
+	r, err := NewEventReactor(10, Epoll)
 	if err != nil {
 		t.Error(err)
 	}

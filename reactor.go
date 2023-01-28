@@ -6,30 +6,21 @@ type EventReactorConfig struct {
 }
 
 type EventReactor struct {
-	C             EventReactorConfig
 	Demultiplexer EventDemultiplexer
 	Hanlder       EventHandler
+	ActiveEvs     []Event
 }
 
-func NewEventReactor(c EventReactorConfig) (evReactor *EventReactor, err error) {
-	var demultiplexer EventDemultiplexer
-	switch c.DemultiplexerType {
-	case Epoll:
-		demultiplexer, err = NewEpoller(c.Capacity)
-	case Kqueue:
-		fallthrough
-	default:
-		err = ErrInvalidDemultiplexerType
-	}
+func NewEventReactor(capacity int, demultiplexerType EventDemultiplexerType) (*EventReactor, error) {
+	demultiplexer, err := NewEventDemultiplexer(demultiplexerType, capacity)
 	if err != nil {
-		return
+		return nil, err
 	}
-	evReactor = &EventReactor{
-		C:             c,
+	return &EventReactor{
 		Demultiplexer: demultiplexer,
-		Hanlder:       make(EventHandler, c.Capacity),
-	}
-	return
+		Hanlder:       make(EventHandler),
+		ActiveEvs:     make([]Event, capacity),
+	}, nil
 }
 
 func (r *EventReactor) RegisterEvent(ev Event, fn EventCallback) error {
@@ -58,14 +49,13 @@ func (r *EventReactor) ModifyEvent(ev Event, fn EventCallback) error {
 }
 
 func (r *EventReactor) React() error {
-	activeEvents := make([]Event, r.C.Capacity)
 	for {
-		n, err := r.Demultiplexer.WaitActiveEvents(activeEvents)
+		n, err := r.Demultiplexer.WaitActiveEvents(r.ActiveEvs)
 		if err != nil {
 			return err
 		}
 		for i := 0; i < n; i++ {
-			r.Hanlder[activeEvents[i].Fd](activeEvents[i])
+			r.Hanlder[r.ActiveEvs[i].Fd](r.ActiveEvs[i])
 		}
 	}
 }
