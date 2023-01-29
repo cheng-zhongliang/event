@@ -60,9 +60,11 @@ func main() {
 		Fd:   int(r0),
 		Flag: unicorn.EventRead,
 	}
+	
 	cb := func(ev unicorn.Event) {
 		log.Println("Event triggered")
 	}
+	
 	if err := EvReactor.RegisterEvent(event, cb); err != nil {
 		log.Println(err)
 		return
