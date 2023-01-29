@@ -1,10 +1,5 @@
 package unicorn
 
-type EventReactorConfig struct {
-	Capacity          int
-	DemultiplexerType EventDemultiplexerType
-}
-
 type EventReactor struct {
 	Demultiplexer EventDemultiplexer
 	Hanlder       EventHandler
