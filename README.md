@@ -47,32 +47,27 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer EvReactor.CoolOff()
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
+	evFd, _, err := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
-		log.Println(err)
-		return
+		log.Fatal(err)
 	}
-	defer syscall.Close(int(r0))
 
 	event := unicorn.Event{
-		Fd:   int(r0),
+		Fd:   int(evFd),
 		Flag: unicorn.EventRead,
 	}
-	
+
 	callback := func(ev unicorn.Event) {
 		log.Println("Event triggered")
 	}
-	
+
 	if err := EvReactor.RegisterEvent(event, callback); err != nil {
-		log.Println(err)
-		return
+		log.Fatal(err)
 	}
 
 	if err := EvReactor.React(); err != nil {
-		log.Println(err)
-		return
+		log.Fatal(err)
 	}
 }
 ```
