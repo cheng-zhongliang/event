@@ -6,16 +6,16 @@ import (
 )
 
 // avoid false sharing
-type cacheLine [64]byte
+const cacheLine = 64
 
 type RingQueue struct {
 	cap   uint32
 	mask  uint32
-	_     cacheLine
+	_     [cacheLine - 2*4]byte
 	head  uint32
-	_     cacheLine
+	_     [cacheLine - 4]byte
 	tail  uint32
-	_     cacheLine
+	_     [cacheLine - 4]byte
 	items []interface{}
 }
 
