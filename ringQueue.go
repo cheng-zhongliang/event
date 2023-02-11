@@ -50,7 +50,7 @@ func (r *RingQueue) Enqueue(value interface{}) error {
 		item := &r.items[tail]
 		if atomic.CompareAndSwapUint32(&r.tail, tail, nextTail) && atomic.CompareAndSwapUint32(&item.flag, F, W) {
 			item.value = item
-			atomic.StoreUint32(&item.flag, R)
+			atomic.StoreUint32(&item.flag, F)
 			return nil
 		}
 	}
@@ -64,7 +64,7 @@ func (r *RingQueue) Dequeue() (interface{}, error) {
 			return nil, fmt.Errorf("Empty")
 		}
 		item := &r.items[head]
-		if atomic.CompareAndSwapUint32(&r.head, head, (head+1)&r.mask) && atomic.CompareAndSwapUint32(&item.flag, F, W) {
+		if atomic.CompareAndSwapUint32(&r.head, head, (head+1)&r.mask) && atomic.CompareAndSwapUint32(&item.flag, F, R) {
 			atomic.StoreUint32(&item.flag, F)
 			return item.value, nil
 		}
