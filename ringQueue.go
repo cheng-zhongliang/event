@@ -28,6 +28,7 @@ type RingQueue struct {
 type item struct {
 	flag  uint32
 	value interface{}
+	_     [cacheLine - 4 - 8]byte
 }
 
 func NewRingQueue(capacity uint32) *RingQueue {
