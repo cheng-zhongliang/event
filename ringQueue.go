@@ -34,50 +34,50 @@ type item struct {
 func NewRingQueue(capacity uint32) *RingQueue {
 	size := roundUpToPower2(capacity)
 	return &RingQueue{
-		cap:   size,
+		cap:   size - 1,
 		mask:  size - 1,
 		items: make([]item, size),
 	}
 }
 
-func (r *RingQueue) Enqueue(value interface{}) error {
+func (rq *RingQueue) Enqueue(value interface{}) error {
 	for {
-		head := atomic.LoadUint32(&r.head)
-		tail := atomic.LoadUint32(&r.tail)
-		nextTail := (tail + 1) & r.mask
+		head := atomic.LoadUint32(&rq.head)
+		tail := atomic.LoadUint32(&rq.tail)
+		nextTail := (tail + 1) & rq.mask
 		if nextTail == head {
 			return fmt.Errorf("Full")
 		}
-		item := &r.items[tail]
-		if atomic.CompareAndSwapUint32(&r.tail, tail, nextTail) && atomic.CompareAndSwapUint32(&item.flag, F, W) {
-			item.value = item
+		if atomic.CompareAndSwapUint32(&rq.tail, tail, nextTail) && atomic.CompareAndSwapUint32(&rq.items[tail].flag, F, W) {
+			item := &rq.items[tail]
+			item.value = value
 			atomic.StoreUint32(&item.flag, F)
 			return nil
 		}
 	}
 }
 
-func (r *RingQueue) Dequeue() (interface{}, error) {
+func (rq *RingQueue) Dequeue() (interface{}, error) {
 	for {
-		head := atomic.LoadUint32(&r.head)
-		tail := atomic.LoadUint32(&r.tail)
+		head := atomic.LoadUint32(&rq.head)
+		tail := atomic.LoadUint32(&rq.tail)
 		if head == tail {
 			return nil, fmt.Errorf("Empty")
 		}
-		item := &r.items[head]
-		if atomic.CompareAndSwapUint32(&r.head, head, (head+1)&r.mask) && atomic.CompareAndSwapUint32(&item.flag, F, R) {
+		if atomic.CompareAndSwapUint32(&rq.head, head, (head+1)&rq.mask) && atomic.CompareAndSwapUint32(&rq.items[head].flag, F, R) {
+			item := &rq.items[head]
 			atomic.StoreUint32(&item.flag, F)
 			return item.value, nil
 		}
 	}
 }
 
-func (r *RingQueue) Cap() uint32 {
-	return r.cap
+func (rq *RingQueue) Cap() uint32 {
+	return rq.cap
 }
 
-func (r *RingQueue) Size() uint32 {
-	return (atomic.LoadUint32(&r.tail) - atomic.LoadUint32(&r.head)) & r.mask
+func (rq *RingQueue) Size() uint32 {
+	return (atomic.LoadUint32(&rq.tail) - atomic.LoadUint32(&rq.head)) & rq.mask
 }
 
 func roundUpToPower2(v uint32) uint32 {
