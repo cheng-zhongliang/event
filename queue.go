@@ -4,7 +4,7 @@ type EventQueue struct {
 	ch chan Event
 }
 
-func NewEQueue(size int) *EventQueue {
+func NewEventQueue(size int) *EventQueue {
 	return &EventQueue{
 		ch: make(chan Event, size),
 	}
