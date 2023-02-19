@@ -1,59 +1,105 @@
 package unicorn
 
-import (
-	"testing"
-)
+import "testing"
 
-func TestNewRingQueue(t *testing.T) {
-	rq := NewRingQueue(1024)
-	if rq == nil {
-		t.Fatalf("NewRingQueue failed")
-	}
-	cap := rq.Cap()
-	if cap != 1023 {
-		t.Fatalf("NewRingQueue failed, cap != %d", cap)
-	}
-	size := rq.Size()
-	if size != 0 {
-		t.Fatalf("NewRingQueue failed, size != %d", size)
+func TestPush(t *testing.T) {
+	q := NewEQueue(1)
+	ev := Event{Fd: 1, Flag: EventRead}
+	err := q.Push(ev)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestRingQueueEnqueue(t *testing.T) {
-	rq := NewRingQueue(8)
-	for i := 0; i < 7; i++ {
-		if err := rq.Enqueue(i); err != nil {
-			t.Fatalf("RingQueue.Enqueue failed, err: %s", err)
-		}
+func TestPop(t *testing.T) {
+	q := NewEQueue(1)
+	ev := Event{Fd: 1, Flag: EventRead}
+	err := q.Push(ev)
+	if err != nil {
+		t.Fatal(err)
 	}
-	size := rq.Size()
-	if size != 7 {
-		t.Fatalf("RingQueue.Enqueue failed, size != %d", size)
+	ev, err = q.Pop()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Fd != 1 || ev.Flag != EventRead {
+		t.Fatal("pop error")
 	}
 }
 
-func TestRingQueueDequeue(t *testing.T) {
-	rq := NewRingQueue(8)
-	for i := 0; i < 7; i++ {
-		if err := rq.Enqueue(i); err != nil {
-			t.Fatalf("RingQueue.Enqueue failed, err: %s", err)
+func TestPushFull(t *testing.T) {
+	q := NewEQueue(1)
+	ev := Event{Fd: 1, Flag: EventRead}
+	err := q.Push(ev)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = q.Push(ev)
+	if err != ErrQueueFull {
+		t.Fatal(err)
+	}
+}
+
+func TestPopEmpty(t *testing.T) {
+	q := NewEQueue(1)
+	_, err := q.Pop()
+	if err != ErrQueueEmpty {
+		t.Fatal(err)
+	}
+}
+
+func BenchmarkPush(b *testing.B) {
+	q := NewEQueue(b.N)
+	ev := Event{Fd: 1, Flag: EventRead}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q.Push(ev)
+	}
+}
+
+func BenchmarkPop(b *testing.B) {
+	q := NewEQueue(b.N)
+	ev := Event{Fd: 1, Flag: EventRead}
+	for i := 0; i < b.N; i++ {
+		q.Push(ev)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q.Pop()
+	}
+}
+
+func BenchmarkPushPop(b *testing.B) {
+	q := NewEQueue(b.N)
+	ev := Event{Fd: 1, Flag: EventRead}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q.Push(ev)
+		q.Pop()
+	}
+}
+
+func BenchmarkPushParallel(b *testing.B) {
+	q := NewEQueue(b.N)
+	ev := Event{Fd: 1, Flag: EventRead}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			q.Push(ev)
 		}
+	})
+}
+
+func BenchmarkPopParallel(b *testing.B) {
+	q := NewEQueue(b.N)
+	ev := Event{Fd: 1, Flag: EventRead}
+	for i := 0; i < b.N; i++ {
+		q.Push(ev)
 	}
-	size := rq.Size()
-	if size != 7 {
-		t.Fatalf("RingQueue.Enqueue failed, size != %d", size)
-	}
-	for i := 0; i < 7; i++ {
-		if v, err := rq.Dequeue(); err != nil {
-			t.Fatalf("RingQueue.Dequeue failed, err: %s", err)
-		} else {
-			if vv, ok := v.(int); ok {
-				if vv != i {
-					t.Fatalf("RingQueue.Dequeue failed, v != %d", vv)
-				}
-			} else {
-				t.Fatalf("RingQueue.Dequeue failed, v is not int")
-			}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			q.Pop()
 		}
-	}
+	})
 }
