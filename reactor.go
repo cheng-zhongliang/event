@@ -30,7 +30,6 @@ func (r *EventReactor) UnregisterEvent(ev Event) error {
 	if _, ok := r.Hanlder[ev.Fd]; !ok {
 		return ErrEventNotExists
 	}
-
 	delete(r.Hanlder, ev.Fd)
 	return r.Demultiplexer.DelEvent(ev)
 }
