@@ -10,7 +10,7 @@ func NewEventQueue(size int) *EventQueue {
 	}
 }
 
-func (eq *EventQueue) Push(ev Event) error {
+func (eq *EventQueue) Enqueue(ev Event) error {
 	select {
 	case eq.ch <- ev:
 		return nil
@@ -19,7 +19,7 @@ func (eq *EventQueue) Push(ev Event) error {
 	}
 }
 
-func (eq *EventQueue) Pop() (Event, error) {
+func (eq *EventQueue) Dequeue() (Event, error) {
 	select {
 	case ev := <-eq.ch:
 		return ev, nil
