@@ -27,7 +27,3 @@ func (eq *EventQueue) Pop() (Event, error) {
 		return Event{}, ErrQueueEmpty
 	}
 }
-
-func (eq *EventQueue) Destroy() {
-	close(eq.ch)
-}
