@@ -41,7 +41,7 @@ func (base *EventBase) AddEvent(ev *Event) error {
 // DelEvent deletes an event from the event base.
 func (base *EventBase) DelEvent(ev *Event) error {
 	if ev.Flags&(EvListInserted|EvListActive) == 0 {
-		return ErrEventAlreadyAdded
+		return ErrEventNotAdded
 	}
 
 	if ev.Flags&EvListActive != 0 {
