@@ -1,71 +1,113 @@
-package unicorn
+package event
 
 import (
 	"syscall"
 )
 
-type Epoller struct {
-	Fd        int
-	ActiveEvs []syscall.EpollEvent
+type Epoll struct {
+	Fd  int
+	Evs map[int]*struct {
+		R *Event
+		W *Event
+	}
+	EpollEvs []syscall.EpollEvent
 }
 
-func NewEpoller(capacity int) (*Epoller, error) {
+func NewEpoll() (*Epoll, error) {
 	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, err
 	}
-	return &Epoller{
-		Fd:        fd,
-		ActiveEvs: make([]syscall.EpollEvent, capacity),
+
+	return &Epoll{
+		Fd:       fd,
+		Evs:      make(map[int]*struct{ R, W *Event }),
+		EpollEvs: make([]syscall.EpollEvent, 1024),
 	}, nil
 }
 
-func (ep *Epoller) AddEvent(ev Event) error {
-	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_ADD, ev.Fd, ep.stdEv2epEv(ev))
-}
+func (ep *Epoll) Add(ev *Event) error {
+	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
+	op := syscall.EPOLL_CTL_ADD
 
-func (ep *Epoller) DelEvent(ev Event) error {
-	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_DEL, ev.Fd, nil)
-}
-
-func (ep *Epoller) ModEvent(ev Event) error {
-	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_MOD, ev.Fd, ep.stdEv2epEv(ev))
-}
-
-func (ep *Epoller) WaitActiveEvents(evs []Event) (n int, err error) {
-	n, err = syscall.EpollWait(ep.Fd, ep.ActiveEvs, -1)
-	if err != nil && !TemporaryErr(err) {
-		return
+	es, ok := ep.Evs[ev.Fd]
+	if ok {
+		op = syscall.EPOLL_CTL_MOD
+		if es.R != nil {
+			epEv.Events |= syscall.EPOLLIN
+		}
+		if es.W != nil {
+			epEv.Events |= syscall.EPOLLOUT
+		}
 	}
-	for i := 0; i < n; i++ {
-		evs[i] = ep.epEv2StdEv(ep.ActiveEvs[i])
+
+	if ev.Events&EvRead != 0 {
+		epEv.Events |= syscall.EPOLLIN
+		ep.Evs[ev.Fd].R = ev
 	}
-	return
+	if ev.Events&EvWrite != 0 {
+		epEv.Events |= syscall.EPOLLOUT
+		ep.Evs[ev.Fd].W = ev
+	}
+
+	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
 }
 
-func (ep *Epoller) Close() error {
-	return syscall.Close(ep.Fd)
-}
+func (ep *Epoll) Del(ev *Event) error {
+	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
+	op := syscall.EPOLL_CTL_DEL
 
-func (ep *Epoller) epEv2StdEv(epEv syscall.EpollEvent) (stdEv Event) {
-	stdEv.Fd = int(epEv.Fd)
-	if epEv.Events&syscall.EPOLLIN != 0 {
-		stdEv.Flag |= EventRead
-	}
-	if epEv.Events&syscall.EPOLLOUT != 0 {
-		stdEv.Flag |= EventWrite
-	}
-	return
-}
-
-func (ep *Epoller) stdEv2epEv(stdEv Event) (epEv *syscall.EpollEvent) {
-	epEv = new(syscall.EpollEvent)
-	if stdEv.Flag&EventRead != 0 {
+	if ev.Events&EvRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
 	}
-	if stdEv.Flag&EventWrite != 0 {
+	if ev.Events&EvWrite != 0 {
 		epEv.Events |= syscall.EPOLLOUT
 	}
-	epEv.Fd = int32(stdEv.Fd)
-	return
+
+	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
+		op = syscall.EPOLL_CTL_MOD
+		if epEv.Events&syscall.EPOLLIN != 0 && ep.Evs[ev.Fd].W != nil {
+			epEv.Events = syscall.EPOLLOUT
+			ep.Evs[ev.Fd].R = nil
+		} else if epEv.Events&syscall.EPOLLOUT != 0 && ep.Evs[ev.Fd].R != nil {
+			epEv.Events = syscall.EPOLLIN
+			ep.Evs[ev.Fd].W = nil
+		}
+	} else {
+		delete(ep.Evs, ev.Fd)
+	}
+
+	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
+}
+
+func (ep *Epoll) Polling(cb func(ev *Event, activeEvs uint32)) error {
+	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, -1)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < n; i++ {
+		var evRead, evWrite *Event
+		what := ep.EpollEvs[i].Events
+		es, ok := ep.Evs[int(ep.EpollEvs[i].Fd)]
+		if !ok {
+			continue
+		}
+
+		if what&syscall.EPOLLIN != 0 {
+			evRead = es.R
+		}
+		if what&syscall.EPOLLOUT != 0 {
+			evWrite = es.W
+		}
+
+		if evRead != nil {
+			cb(evRead, EvRead)
+		}
+		if evWrite != nil {
+			cb(evWrite, EvWrite)
+		}
+	}
+
+	return nil
 }
