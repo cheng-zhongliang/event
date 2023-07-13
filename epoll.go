@@ -5,14 +5,20 @@ import (
 )
 
 type Epoll struct {
-	Fd  int
+	// Fd is the file descriptor of epoll.
+	Fd int
+	// Evs is the fd to event map.
 	Evs map[int]*struct {
+		// R is the read event.
 		R *Event
+		// W is the write event.
 		W *Event
 	}
+	// EpollEvs is the epoll events.
 	EpollEvs []syscall.EpollEvent
 }
 
+// NewEpoll creates a new epoll poller.
 func NewEpoll() (*Epoll, error) {
 	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
@@ -26,6 +32,8 @@ func NewEpoll() (*Epoll, error) {
 	}, nil
 }
 
+// Add adds an event to the epoll poller.
+// If the event is already added, it will be modified.
 func (ep *Epoll) Add(ev *Event) error {
 	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
 	op := syscall.EPOLL_CTL_ADD
@@ -53,6 +61,9 @@ func (ep *Epoll) Add(ev *Event) error {
 	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
 }
 
+// Del deletes an event from the epoll poller.
+// If the event is not added, it will return an error.
+// If the event is added twice, it will be modified.
 func (ep *Epoll) Del(ev *Event) error {
 	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
 	op := syscall.EPOLL_CTL_DEL
@@ -80,7 +91,10 @@ func (ep *Epoll) Del(ev *Event) error {
 	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
 }
 
-func (ep *Epoll) Polling(cb func(ev *Event, activeEvs uint32)) error {
+// Polling polls the epoll poller.
+// It will call the callback function when an event is ready.
+// It will block until an event is ready.
+func (ep *Epoll) Polling(cb func(ev *Event, res uint32)) error {
 	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, -1)
 	if err != nil {
 		return err
@@ -110,4 +124,9 @@ func (ep *Epoll) Polling(cb func(ev *Event, activeEvs uint32)) error {
 	}
 
 	return nil
+}
+
+// Close closes the epoll poller.
+func (ep *Epoll) Close() error {
+	return syscall.Close(ep.Fd)
 }

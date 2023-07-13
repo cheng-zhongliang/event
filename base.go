@@ -2,7 +2,6 @@ package event
 
 import (
 	"container/list"
-	"fmt"
 )
 
 type EventBase struct {
@@ -14,6 +13,7 @@ type EventBase struct {
 	ActiveEvList *list.List
 }
 
+// NewBase creates a new event base.
 func NewBase() (*EventBase, error) {
 	poller, err := NewEpoll()
 	if err != nil {
@@ -27,13 +27,10 @@ func NewBase() (*EventBase, error) {
 	}, nil
 }
 
+// AddEvent adds an event to the event base.
 func (base *EventBase) AddEvent(ev *Event) error {
-	if ev.Events&(EvRead|EvWrite) == 0 {
-		return fmt.Errorf("invalid events: %d", ev.Events)
-	}
-
 	if ev.Flags&(EvListInserted|EvListActive) != 0 {
-		return fmt.Errorf("event already added")
+		return ErrEventAlreadyAdded
 	}
 
 	ev.Ele = base.EvList.PushBack(ev)
@@ -41,24 +38,28 @@ func (base *EventBase) AddEvent(ev *Event) error {
 	return base.Poller.Add(ev)
 }
 
+// DelEvent deletes an event from the event base.
 func (base *EventBase) DelEvent(ev *Event) error {
 	if ev.Flags&(EvListInserted|EvListActive) == 0 {
-		return fmt.Errorf("event not added")
+		return ErrEventAlreadyAdded
 	}
 
 	if ev.Flags&EvListActive != 0 {
 		base.ActiveEvList.Remove(ev.ActiveEle)
+		ev.ActiveEle = nil
 		ev.Flags &^= EvListActive
 	}
 
 	if ev.Flags&EvListInserted != 0 {
 		base.EvList.Remove(ev.Ele)
+		ev.Ele = nil
 		ev.Flags &^= EvListInserted
 	}
 
 	return base.Poller.Del(ev)
 }
 
+// OnEvent adds an event to the active event list.
 func (base *EventBase) OnEvent(ev *Event, res uint32) {
 	if ev.Flags&EvListActive != 0 {
 		ev.Res |= res
@@ -70,6 +71,7 @@ func (base *EventBase) OnEvent(ev *Event, res uint32) {
 	ev.ActiveEle = base.ActiveEvList.PushBack(ev)
 }
 
+// Dispatch waits for events and dispatches them.
 func (base *EventBase) Dispatch() error {
 	for {
 		if err := base.Poller.Polling(base.OnEvent); err != nil {
@@ -80,7 +82,13 @@ func (base *EventBase) Dispatch() error {
 			base.ActiveEvList.Remove(e)
 			ev := e.Value.(*Event)
 			ev.Flags &^= EvListActive
+			ev.ActiveEle = nil
 			ev.Cb(ev.Fd, ev.Res, ev.Arg)
 		}
 	}
+}
+
+// Exit closes the event base.
+func (base *EventBase) Exit() error {
+	return base.Poller.Close()
 }

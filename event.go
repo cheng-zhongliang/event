@@ -6,11 +6,15 @@ import (
 )
 
 const (
-	EvRead  = 0x01
+	// EvRead is readable event.
+	EvRead = 0x01
+	// EvWrite is writable event.
 	EvWrite = 0x02
 
+	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
-	EvListActive   = 0x02
+	// EvListActive is the flag to indicate the event is in the active event list.
+	EvListActive = 0x02
 )
 
 type Event struct {
