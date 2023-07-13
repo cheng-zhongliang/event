@@ -5,7 +5,7 @@ import (
 )
 
 type EventBase struct {
-	//  Poller is the event poller to watch events.
+	// Poller is the event poller to watch events.
 	Poller *Epoll
 	// EvList is the list of all events.
 	EvList *list.List
