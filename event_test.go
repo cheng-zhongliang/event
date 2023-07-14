@@ -6,7 +6,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	base, err := NewEventBase()
+	base, err := NewBase()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestAddEvent(t *testing.T) {
-	base, err := NewEventBase()
+	base, err := NewBase()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestAddEvent(t *testing.T) {
 }
 
 func TestDelEvent(t *testing.T) {
-	base, err := NewEventBase()
+	base, err := NewBase()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestDelEvent(t *testing.T) {
 }
 
 func TestEventDispatch(t *testing.T) {
-	base, err := NewEventBase()
+	base, err := NewBase()
 	if err != nil {
 		t.Fatal(err)
 	}

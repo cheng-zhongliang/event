@@ -59,8 +59,8 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 	}
 }
 
-// NewEventBase creates a new event base.
-func NewEventBase() (*EventBase, error) {
+// NewBase creates a new event base.
+func NewBase() (*EventBase, error) {
 	poller, err := NewEpoll()
 	if err != nil {
 		return nil, err
