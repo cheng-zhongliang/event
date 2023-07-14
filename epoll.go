@@ -48,15 +48,18 @@ func (ep *Epoll) Add(ev *Event) error {
 		if es.W != nil {
 			epEv.Events |= syscall.EPOLLOUT
 		}
+	} else {
+		es = &struct{ R, W *Event }{}
+		ep.Evs[ev.Fd] = es
 	}
 
 	if ev.Events&EvRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
-		ep.Evs[ev.Fd].R = ev
+		es.R = ev
 	}
 	if ev.Events&EvWrite != 0 {
 		epEv.Events |= syscall.EPOLLOUT
-		ep.Evs[ev.Fd].W = ev
+		es.W = ev
 	}
 
 	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)

@@ -2,7 +2,6 @@ package event
 
 import (
 	"container/list"
-	"unsafe"
 )
 
 const (
@@ -30,9 +29,9 @@ type Event struct {
 	Events uint32
 
 	// Cb is the callback function when the event is triggered.
-	Cb func(fd int, events uint32, arg unsafe.Pointer)
+	Cb func(fd int, events uint32, arg interface{})
 	// Arg is the argument passed to the callback function.
-	Arg unsafe.Pointer
+	Arg interface{}
 
 	// Res is the result passed to the callback function.
 	Res uint32
@@ -51,7 +50,7 @@ type EventBase struct {
 }
 
 // New creates a new event.
-func New(fd int, events uint32, callback func(fd int, events uint32, arg unsafe.Pointer), arg unsafe.Pointer) *Event {
+func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	return &Event{
 		Fd:     fd,
 		Events: events,
