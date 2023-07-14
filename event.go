@@ -17,6 +17,7 @@ const (
 	EvListActive = 0x02
 )
 
+// Event is the event to watch.
 type Event struct {
 	// Ele is the element in the total event list.
 	Ele *list.Element
@@ -39,7 +40,8 @@ type Event struct {
 	Flags int
 }
 
-type Base struct {
+// EventBase is the base of all events.
+type EventBase struct {
 	// Poller is the event poller to watch events.
 	Poller *Epoll
 	// EvList is the list of all events.
@@ -58,14 +60,14 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg unsafe.
 	}
 }
 
-// NewBase creates a new event base.
-func NewBase() (*Base, error) {
+// NewEventBase creates a new event base.
+func NewEventBase() (*EventBase, error) {
 	poller, err := NewEpoll()
 	if err != nil {
 		return nil, err
 	}
 
-	return &Base{
+	return &EventBase{
 		Poller:       poller,
 		EvList:       list.New(),
 		ActiveEvList: list.New(),
@@ -73,67 +75,95 @@ func NewBase() (*Base, error) {
 }
 
 // AddEvent adds an event to the event base.
-func (bs *Base) AddEvent(ev *Event) error {
+func (bs *EventBase) AddEvent(ev *Event) error {
 	if ev.Flags&(EvListInserted|EvListActive) != 0 {
 		return ErrEventAlreadyAdded
 	}
 
-	ev.Ele = bs.EvList.PushBack(ev)
+	bs.EventListInsert(ev, EvListInserted)
 
 	return bs.Poller.Add(ev)
 }
 
 // DelEvent deletes an event from the event base.
-func (bs *Base) DelEvent(ev *Event) error {
+func (bs *EventBase) DelEvent(ev *Event) error {
 	if ev.Flags&(EvListInserted|EvListActive) == 0 {
 		return ErrEventNotAdded
 	}
 
 	if ev.Flags&EvListActive != 0 {
-		bs.ActiveEvList.Remove(ev.ActiveEle)
-		ev.ActiveEle = nil
-		ev.Flags &^= EvListActive
+		bs.EventListRemove(ev, EvListActive)
 	}
 
 	if ev.Flags&EvListInserted != 0 {
-		bs.EvList.Remove(ev.Ele)
-		ev.Ele = nil
-		ev.Flags &^= EvListInserted
+		bs.EventListRemove(ev, EvListInserted)
 	}
 
 	return bs.Poller.Del(ev)
 }
 
-// OnEvent adds an event to the active event list.
-func (bs *Base) OnEvent(ev *Event, res uint32) {
-	if ev.Flags&EvListActive != 0 {
-		ev.Res |= res
-		return
-	}
-
-	ev.Res = res
-	ev.Flags |= EvListActive
-	ev.ActiveEle = bs.ActiveEvList.PushBack(ev)
-}
-
 // Dispatch waits for events and dispatches them.
-func (bs *Base) Dispatch() error {
+func (bs *EventBase) Dispatch() error {
 	for {
-		if err := bs.Poller.Polling(bs.OnEvent); err != nil {
+		if err := bs.Poller.Polling(bs.OnActiveEvent); err != nil {
 			return err
 		}
 
 		for e := bs.ActiveEvList.Front(); e != nil; e = e.Next() {
-			bs.ActiveEvList.Remove(e)
 			ev := e.Value.(*Event)
-			ev.Flags &^= EvListActive
-			ev.ActiveEle = nil
+			bs.EventListRemove(ev, EvListActive)
 			ev.Cb(ev.Fd, ev.Res, ev.Arg)
 		}
 	}
 }
 
 // Exit closes the event base.
-func (bs *Base) Exit() error {
+func (bs *EventBase) Exit() error {
 	return bs.Poller.Close()
+}
+
+// OnEvent adds an event to the active event list.
+func (bs *EventBase) OnActiveEvent(ev *Event, res uint32) {
+	if ev.Flags&EvListActive != 0 {
+		ev.Res |= res
+		return
+	}
+
+	ev.Res = res
+	bs.EventListInsert(ev, EvListActive)
+}
+
+// EventListInsert inserts an event into the event list.
+// Double insertion is possible for active events.
+func (bs *EventBase) EventListInsert(ev *Event, which int) {
+	if ev.Flags&which != 0 {
+		if ev.Flags&EvListActive != 0 {
+			return
+		}
+	}
+
+	ev.Flags |= which
+	switch which {
+	case EvListInserted:
+		ev.Ele = bs.EvList.PushBack(ev)
+	case EvListActive:
+		ev.ActiveEle = bs.ActiveEvList.PushBack(ev)
+	}
+}
+
+// EventListRemove removes an event from the event list.
+func (bs *EventBase) EventListRemove(ev *Event, which int) {
+	if ev.Flags&which == 0 {
+		return
+	}
+
+	ev.Flags &^= which
+	switch which {
+	case EvListInserted:
+		bs.EvList.Remove(ev.Ele)
+		ev.Ele = nil
+	case EvListActive:
+		bs.ActiveEvList.Remove(ev.ActiveEle)
+		ev.ActiveEle = nil
+	}
 }

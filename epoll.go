@@ -4,6 +4,7 @@ import (
 	"syscall"
 )
 
+// Epoll is the epoll poller implementation.
 type Epoll struct {
 	// Fd is the file descriptor of epoll.
 	Fd int
@@ -28,7 +29,7 @@ func NewEpoll() (*Epoll, error) {
 	return &Epoll{
 		Fd:       fd,
 		Evs:      make(map[int]*struct{ R, W *Event }),
-		EpollEvs: make([]syscall.EpollEvent, 1024),
+		EpollEvs: make([]syscall.EpollEvent, 0xFF),
 	}, nil
 }
 
