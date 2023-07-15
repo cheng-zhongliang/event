@@ -56,7 +56,7 @@ type EventBase struct {
 	// ActiveEvList is the list of active events.
 	ActiveEvList *list.List
 	// EventHeap is the min heap of timeout events.
-	EventHeap *EventHeap
+	EvHeap *EventHeap
 }
 
 // New creates a new event.
@@ -80,7 +80,7 @@ func NewBase() (*EventBase, error) {
 		Poller:       poller,
 		EvList:       list.New(),
 		ActiveEvList: list.New(),
-		EventHeap:    NewEventHeap(),
+		EvHeap:       NewEventHeap(),
 	}, nil
 }
 
@@ -93,7 +93,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 	if ev.Events&EvTimeout != 0 && timeout > 0 {
 		ev.Timeout = timeout.Milliseconds()
 		ev.Deadline = time.Now().Add(timeout).UnixMilli()
-		bs.EventHeap.PushEvent(ev)
+		bs.EvHeap.PushEvent(ev)
 	}
 
 	bs.EventListInsert(ev, EvListInserted)
@@ -139,9 +139,9 @@ func (bs *EventBase) Exit() error {
 
 // WaitTime returns the time to wait for events.
 func (bs *EventBase) WaitTime() int {
-	if !bs.EventHeap.Empty() {
+	if !bs.EvHeap.Empty() {
 		now := time.Now().UnixMilli()
-		ev := bs.EventHeap.PeekEvent()
+		ev := bs.EvHeap.PeekEvent()
 		if ev.Deadline > now {
 			return int(ev.Deadline - now)
 		}
@@ -153,12 +153,12 @@ func (bs *EventBase) WaitTime() int {
 // OnTimeout handles timeout events.
 func (bs *EventBase) OnTimeout() {
 	now := time.Now().UnixMilli()
-	for !bs.EventHeap.Empty() {
-		ev := bs.EventHeap.PeekEvent()
+	for !bs.EvHeap.Empty() {
+		ev := bs.EvHeap.PeekEvent()
 		if ev.Deadline > now {
 			break
 		}
-		bs.EventHeap.PopEvent()
+		bs.EvHeap.PopEvent()
 		bs.OnActive(ev, EvTimeout)
 	}
 }
@@ -182,7 +182,7 @@ func (bs *EventBase) HandleActiveEvents() {
 		if ev.Events&EvTimeout != 0 && ev.Flags&EvListInserted != 0 {
 			now := time.Now().UnixMilli()
 			ev.Deadline = now + ev.Timeout
-			bs.EventHeap.PushEvent(ev)
+			bs.EvHeap.PushEvent(ev)
 		}
 		ev.Cb(ev.Fd, ev.Res, ev.Arg)
 	}
