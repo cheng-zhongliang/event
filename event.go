@@ -139,7 +139,7 @@ func (bs *EventBase) Exit() error {
 
 // WaitTime returns the time to wait for events.
 func (bs *EventBase) WaitTime() int {
-	if bs.EventHeap.Len() > 0 {
+	if !bs.EventHeap.Empty() {
 		now := time.Now().UnixMilli()
 		ev := bs.EventHeap.PeekEvent()
 		if ev.Deadline > now {
@@ -153,7 +153,7 @@ func (bs *EventBase) WaitTime() int {
 // OnTimeout handles timeout events.
 func (bs *EventBase) OnTimeout() {
 	now := time.Now().UnixMilli()
-	for bs.EventHeap.Len() > 0 {
+	for !bs.EventHeap.Empty() {
 		ev := bs.EventHeap.PeekEvent()
 		if ev.Deadline > now {
 			break
