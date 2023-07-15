@@ -98,8 +98,8 @@ func (ep *Epoll) Del(ev *Event) error {
 // Polling polls the epoll poller.
 // It will call the callback function when an event is ready.
 // It will block until an event is ready.
-func (ep *Epoll) Polling(cb func(ev *Event, res uint32)) error {
-	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, -1)
+func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
+	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, timeout)
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,7 @@ func TestAddEvent(t *testing.T) {
 		t.Log("callback called")
 	}, nil)
 
-	err = base.AddEvent(ev)
+	err = base.AddEvent(ev, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestDelEvent(t *testing.T) {
 		t.Log("callback called")
 	}, nil)
 
-	err = base.AddEvent(ev)
+	err = base.AddEvent(ev, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestEventDispatch(t *testing.T) {
 		}
 	}, "hello")
 
-	err = base.AddEvent(ev)
+	err = base.AddEvent(ev, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
