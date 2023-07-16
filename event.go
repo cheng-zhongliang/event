@@ -225,14 +225,17 @@ func (bs *EventBase) EventListRemove(ev *Event, which int) {
 	}
 }
 
+// IsExist return true if the event already inserted.
 func (ev *Event) IsExist() bool {
 	return ev.Flags&EvListInserted != 0
 }
 
+// IsActive return true if the event active.
 func (ev *Event) IsActive() bool {
 	return ev.Flags&EvListActive != 0
 }
 
+// IsTimeout return true if the event is timeout.
 func (ev *Event) IsTimeout() bool {
 	return ev.Events&EvTimeout != 0
 }
