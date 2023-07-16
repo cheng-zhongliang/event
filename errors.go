@@ -14,6 +14,7 @@ var (
 	ErrBadFileDescriptor = syscall.EBADF
 )
 
+// TemporaryErr checks if an error is temporary such as EAGAIN
 func TemporaryErr(err error) bool {
 	errno, ok := err.(syscall.Errno)
 	if !ok {

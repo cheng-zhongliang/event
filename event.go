@@ -7,11 +7,11 @@ import (
 
 const (
 	// EvRead is readable event.
-	EvRead = 0x01
+	EvRead = 1 << iota
 	// EvWrite is writable event.
-	EvWrite = 0x02
+	EvWrite = 1 << iota
 	// EvTimeout is timeout event
-	EvTimeout = 0x04
+	EvTimeout = 1 << iota
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
