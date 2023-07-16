@@ -174,7 +174,7 @@ func TestEventTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = base.AddEvent(ev2, 3000*time.Millisecond)
+	err = base.AddEvent(ev2, 2000*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
