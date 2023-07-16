@@ -86,11 +86,11 @@ func NewBase() (*EventBase, error) {
 
 // AddEvent adds an event to the event base.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
-	if ev.Flags&(EvListInserted|EvListActive) != 0 {
+	if ev.Flags&EvListInserted != 0 {
 		return ErrEventAlreadyAdded
 	}
 
-	if ev.Events&EvTimeout != 0 && timeout > 0 {
+	if ev.Events&EvTimeout != 0 {
 		ev.Timeout = timeout.Milliseconds()
 		ev.Deadline = time.Now().Add(timeout).UnixMilli()
 		bs.EvHeap.PushEvent(ev)
@@ -103,7 +103,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 // DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
-	if ev.Flags&(EvListInserted|EvListActive) == 0 {
+	if ev.Flags&EvListInserted == 0 {
 		return ErrEventNotAdded
 	}
 

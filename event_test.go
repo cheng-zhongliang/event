@@ -3,6 +3,7 @@ package event
 import (
 	"syscall"
 	"testing"
+	"time"
 )
 
 func TestNew(t *testing.T) {
@@ -122,4 +123,67 @@ func TestEventDispatch(t *testing.T) {
 	}
 
 	syscall.Close(int(r0))
+}
+
+func TestEventTimeout(t *testing.T) {
+	base, err := NewBase()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r1, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+
+	r2, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+
+	ev1 := New(int(r1), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
+		if fd != int(r1) {
+			t.Fatal("fd not equal")
+		}
+		if events != EvTimeout {
+			t.Fatal("events not equal")
+		}
+		if arg != "hello" {
+			t.Fatal("arg not equal")
+		}
+	}, "hello")
+
+	ev2 := New(int(r2), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
+		if fd != int(r2) {
+			t.Fatal("fd not equal")
+		}
+		if events != EvTimeout {
+			t.Fatal("events not equal")
+		}
+		if arg != "world" {
+			t.Fatal("arg not equal")
+		}
+		err = base.Exit()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}, "world")
+
+	err = base.AddEvent(ev1, 1500*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = base.AddEvent(ev2, 2000*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = base.Dispatch()
+	if err != nil && err != ErrBadFileDescriptor {
+		t.Fatal(err)
+	}
+
+	syscall.Close(int(r1))
+	syscall.Close(int(r2))
 }
