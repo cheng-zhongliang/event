@@ -155,6 +155,10 @@ func (bs *EventBase) OnTimeout() {
 	now := time.Now().UnixMilli()
 	for !bs.EvHeap.Empty() {
 		ev := bs.EvHeap.PeekEvent()
+		if ev.Flags&EvListInserted == 0 {
+			bs.EvHeap.PopEvent()
+			continue
+		}
 		if ev.Deadline > now {
 			break
 		}
