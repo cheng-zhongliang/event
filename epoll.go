@@ -100,7 +100,7 @@ func (ep *Epoll) Del(ev *Event) error {
 // It will block until an event is ready.
 func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, timeout)
-	if err != nil {
+	if err != nil && !TemporaryErr(err) {
 		return err
 	}
 
