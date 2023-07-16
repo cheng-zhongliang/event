@@ -86,11 +86,11 @@ func NewBase() (*EventBase, error) {
 
 // AddEvent adds an event to the event base.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
-	if ev.Flags&EvListInserted != 0 {
+	if ev.IsExist() {
 		return ErrEventAlreadyAdded
 	}
 
-	if ev.Events&EvTimeout != 0 {
+	if ev.IsTimeout() {
 		ev.Timeout = timeout.Milliseconds()
 		ev.Deadline = time.Now().Add(timeout).UnixMilli()
 		bs.EvHeap.PushEvent(ev)
@@ -103,15 +103,15 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 // DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
-	if ev.Flags&EvListInserted == 0 {
+	if !ev.IsExist() {
 		return ErrEventNotAdded
 	}
 
-	if ev.Flags&EvListActive != 0 {
+	if ev.IsActive() {
 		bs.EventListRemove(ev, EvListActive)
 	}
 
-	if ev.Flags&EvListInserted != 0 {
+	if ev.IsExist() {
 		bs.EventListRemove(ev, EvListInserted)
 	}
 
@@ -155,7 +155,7 @@ func (bs *EventBase) OnTimeout() {
 	now := time.Now().UnixMilli()
 	for !bs.EvHeap.Empty() {
 		ev := bs.EvHeap.PeekEvent()
-		if ev.Flags&EvListInserted == 0 {
+		if !ev.IsExist() {
 			bs.EvHeap.PopEvent()
 			continue
 		}
@@ -169,7 +169,7 @@ func (bs *EventBase) OnTimeout() {
 
 // OnEvent adds an event to the active event list.
 func (bs *EventBase) OnActive(ev *Event, res uint32) {
-	if ev.Flags&EvListActive != 0 {
+	if ev.IsActive() {
 		ev.Res |= res
 		return
 	}
@@ -183,7 +183,7 @@ func (bs *EventBase) HandleActiveEvents() {
 	for e := bs.ActiveEvList.Front(); e != nil; e = e.Next() {
 		ev := e.Value.(*Event)
 		bs.EventListRemove(ev, EvListActive)
-		if ev.Events&EvTimeout != 0 && ev.Flags&EvListInserted != 0 {
+		if ev.IsTimeout() && ev.IsExist() {
 			now := time.Now().UnixMilli()
 			ev.Deadline = now + ev.Timeout
 			bs.EvHeap.PushEvent(ev)
@@ -195,10 +195,8 @@ func (bs *EventBase) HandleActiveEvents() {
 // EventListInsert inserts an event into the event list.
 // Double insertion is possible for active events.
 func (bs *EventBase) EventListInsert(ev *Event, which int) {
-	if ev.Flags&which != 0 {
-		if ev.Flags&EvListActive != 0 {
-			return
-		}
+	if ev.Flags&which != 0 && ev.IsActive() {
+		return
 	}
 
 	ev.Flags |= which
@@ -225,4 +223,16 @@ func (bs *EventBase) EventListRemove(ev *Event, which int) {
 		bs.ActiveEvList.Remove(ev.ActiveEle)
 		ev.ActiveEle = nil
 	}
+}
+
+func (ev *Event) IsExist() bool {
+	return ev.Flags&EvListInserted != 0
+}
+
+func (ev *Event) IsActive() bool {
+	return ev.Flags&EvListActive != 0
+}
+
+func (ev *Event) IsTimeout() bool {
+	return ev.Events&EvTimeout != 0
 }
