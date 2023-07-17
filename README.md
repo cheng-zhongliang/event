@@ -2,7 +2,7 @@
 <img 
     src="logo.png" 
     width="350" height="175" border="0" alt="event">
-<br>
+<br><br>
 <a href="https://godoc.org/github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-reference-blue" alt="GoDoc"></a>
 <a href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
 </p>
