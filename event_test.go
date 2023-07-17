@@ -29,9 +29,7 @@ func TestAddEvent(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
-		t.Log("callback called")
-	}, nil)
+	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
 	err = base.AddEvent(ev, 0)
 	if err != nil {
@@ -57,9 +55,7 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
-		t.Log("callback called")
-	}, nil)
+	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
 	err = base.AddEvent(ev, 0)
 	if err != nil {
@@ -186,4 +182,58 @@ func TestEventTimeout(t *testing.T) {
 
 	syscall.Close(int(r1))
 	syscall.Close(int(r2))
+}
+
+func TestTimer(t *testing.T) {
+	base, err := NewBase()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n := 0
+	ev1 := New(-1, EvTimeout, func(fd int, events uint32, arg interface{}) {
+		n++
+		if events != EvTimeout {
+			t.Fatal("events not equal")
+		}
+		if arg != "hello" {
+			t.Fatal("arg not equal")
+		}
+	}, "hello")
+
+	nn := 0
+	ev2 := New(-2, EvTimeout|EvPersist, func(fd int, events uint32, arg interface{}) {
+		nn++
+		if events != EvTimeout {
+			t.Fatal("events not equal")
+		}
+		if arg != "world" {
+			t.Fatal("arg not equal")
+		}
+		if nn == 3 {
+			err = base.Exit()
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}, "world")
+
+	err = base.AddEvent(ev1, 1000*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = base.AddEvent(ev2, 1000*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = base.Dispatch()
+	if err != nil && err != ErrBadFileDescriptor {
+		t.Fatal(err)
+	}
+
+	if n != 1 {
+		t.FailNow()
+	}
 }

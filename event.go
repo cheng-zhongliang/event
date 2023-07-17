@@ -2,6 +2,7 @@ package event
 
 import (
 	"container/list"
+
 	"time"
 )
 
@@ -12,6 +13,8 @@ const (
 	EvWrite = 1 << iota
 	// EvTimeout is timeout event
 	EvTimeout = 1 << iota
+	// EvPersist is persistent event.
+	EvPersist = 1 << iota
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
@@ -98,7 +101,11 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 	bs.EventListInsert(ev, EvListInserted)
 
-	return bs.Poller.Add(ev)
+	if ev.IsRead() || ev.IsWrite() {
+		return bs.Poller.Add(ev)
+	} else {
+		return nil
+	}
 }
 
 // DelEvent deletes an event from the event base.
@@ -115,7 +122,11 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 		bs.EventListRemove(ev, EvListInserted)
 	}
 
-	return bs.Poller.Del(ev)
+	if ev.IsRead() || ev.IsWrite() {
+		return bs.Poller.Del(ev)
+	} else {
+		return nil
+	}
 }
 
 // Dispatch waits for events and dispatches them.
@@ -180,14 +191,22 @@ func (bs *EventBase) OnActive(ev *Event, res uint32) {
 
 // HandleActiveEvents handles active events.
 func (bs *EventBase) HandleActiveEvents() {
-	for e := bs.ActiveEvList.Front(); e != nil; e = e.Next() {
+	for e := bs.ActiveEvList.Front(); e != nil; {
+		next := e.Next()
 		ev := e.Value.(*Event)
-		bs.EventListRemove(ev, EvListActive)
+		if !ev.IsPersist() {
+			bs.DelEvent(ev)
+		} else {
+			bs.EventListRemove(ev, EvListActive)
+		}
+		e = next
+
 		if ev.IsTimeout() && ev.IsExist() {
 			now := time.Now().UnixMilli()
 			ev.Deadline = now + ev.Timeout
 			bs.EvHeap.PushEvent(ev)
 		}
+
 		ev.Cb(ev.Fd, ev.Res, ev.Arg)
 	}
 }
@@ -238,4 +257,19 @@ func (ev *Event) IsActive() bool {
 // IsTimeout return true if the event is timeout.
 func (ev *Event) IsTimeout() bool {
 	return ev.Events&EvTimeout != 0
+}
+
+// IsRead return true if the event is read.
+func (ev *Event) IsRead() bool {
+	return ev.Events&EvRead != 0
+}
+
+// IsWrite return true if the event is write.
+func (ev *Event) IsWrite() bool {
+	return ev.Events&EvWrite != 0
+}
+
+// IsPersist return true if the event is persist.
+func (ev *Event) IsPersist() bool {
+	return ev.Events&EvPersist != 0
 }
