@@ -10,3 +10,21 @@
 `event` is a network I/O event notification library for Go. It uses epoll to monitor I/O events. So it is very efficient and low memory usage. What's more, the API is simple and easy to use.
 
 *Note: All development is done on a Raspberry Pi 4B.*
+
+## Features
+
+- Simple API
+- High performance
+- Low memory usage
+- Readable and writable events support respectively
+- Supports event timeout
+- Efficient ticker event
+
+## Getting Started
+
+### Installing
+To start using `event`, just run `go get`:
+
+```sh
+$ go get -u github.com/cheng-zhongliang/event
+```
