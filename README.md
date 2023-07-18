@@ -38,10 +38,11 @@ Supports Following events:
 - `EvTimeout` fires when the timeout expires.
 - `EvPersist` fires repeatedly until the event is deleted.
 
-Let's take a look at the following example:
+Such as:
 
 ```go
 ev := event.New(fd, event.EvRead|event.EvPersist|event.EvTimeout, Read, nil)
+base.AddEvent(ev, 1*time.Second)
 ```
 
 The event will be triggered when the fd is readable or the timeout expires.
@@ -52,9 +53,7 @@ This is a simple example of how to use the ticker:
 
 ```go
 ev := event.New(-1, event.EvTimeout, Tick, nil)
-if err := base.AddEvent(ev, 1*time.Second); err != nil {
-	panic(err)
-}
+base.AddEvent(ev, 1*time.Second)
 ```
 
 The event will be triggered every second.
