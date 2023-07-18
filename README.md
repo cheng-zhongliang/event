@@ -52,7 +52,7 @@ The event will be triggered when the fd is readable or the timeout expires.
 This is a simple example of how to use the ticker:
 
 ```go
-ev := event.New(-1, event.EvTimeout, Tick, nil)
+ev := event.New(-1, event.EvTimeout|event.EvPersist, Tick, nil)
 base.AddEvent(ev, 1*time.Second)
 ```
 
