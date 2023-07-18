@@ -80,11 +80,12 @@ func (ep *Epoll) Del(ev *Event) error {
 	}
 
 	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
-		op = syscall.EPOLL_CTL_MOD
 		if epEv.Events&syscall.EPOLLIN != 0 && ep.FdEvs[ev.Fd].W != nil {
+			op = syscall.EPOLL_CTL_MOD
 			epEv.Events = syscall.EPOLLOUT
 			ep.FdEvs[ev.Fd].R = nil
 		} else if epEv.Events&syscall.EPOLLOUT != 0 && ep.FdEvs[ev.Fd].R != nil {
+			op = syscall.EPOLL_CTL_MOD
 			epEv.Events = syscall.EPOLLIN
 			ep.FdEvs[ev.Fd].W = nil
 		}
