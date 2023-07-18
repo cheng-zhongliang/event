@@ -9,7 +9,7 @@ type Epoll struct {
 	// Fd is the file descriptor of epoll.
 	Fd int
 	// Evs is the fd to event map.
-	Evs map[int]*struct {
+	FdEvs map[int]*struct {
 		// R is the read event.
 		R *Event
 		// W is the write event.
@@ -28,7 +28,7 @@ func NewEpoll() (*Epoll, error) {
 
 	return &Epoll{
 		Fd:       fd,
-		Evs:      make(map[int]*struct{ R, W *Event }),
+		FdEvs:    make(map[int]*struct{ R, W *Event }),
 		EpollEvs: make([]syscall.EpollEvent, 0xFF),
 	}, nil
 }
@@ -39,7 +39,7 @@ func (ep *Epoll) Add(ev *Event) error {
 	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
 	op := syscall.EPOLL_CTL_ADD
 
-	es, ok := ep.Evs[ev.Fd]
+	es, ok := ep.FdEvs[ev.Fd]
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
 		if es.R != nil {
@@ -50,7 +50,7 @@ func (ep *Epoll) Add(ev *Event) error {
 		}
 	} else {
 		es = &struct{ R, W *Event }{}
-		ep.Evs[ev.Fd] = es
+		ep.FdEvs[ev.Fd] = es
 	}
 
 	if ev.Events&EvRead != 0 {
@@ -81,15 +81,15 @@ func (ep *Epoll) Del(ev *Event) error {
 
 	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
 		op = syscall.EPOLL_CTL_MOD
-		if epEv.Events&syscall.EPOLLIN != 0 && ep.Evs[ev.Fd].W != nil {
+		if epEv.Events&syscall.EPOLLIN != 0 && ep.FdEvs[ev.Fd].W != nil {
 			epEv.Events = syscall.EPOLLOUT
-			ep.Evs[ev.Fd].R = nil
-		} else if epEv.Events&syscall.EPOLLOUT != 0 && ep.Evs[ev.Fd].R != nil {
+			ep.FdEvs[ev.Fd].R = nil
+		} else if epEv.Events&syscall.EPOLLOUT != 0 && ep.FdEvs[ev.Fd].R != nil {
 			epEv.Events = syscall.EPOLLIN
-			ep.Evs[ev.Fd].W = nil
+			ep.FdEvs[ev.Fd].W = nil
 		}
 	} else {
-		delete(ep.Evs, ev.Fd)
+		delete(ep.FdEvs, ev.Fd)
 	}
 
 	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
@@ -107,7 +107,7 @@ func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 	for i := 0; i < n; i++ {
 		var evRead, evWrite *Event
 		what := ep.EpollEvs[i].Events
-		es, ok := ep.Evs[int(ep.EpollEvs[i].Fd)]
+		es, ok := ep.FdEvs[int(ep.EpollEvs[i].Fd)]
 		if !ok {
 			continue
 		}
