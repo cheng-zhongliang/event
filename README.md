@@ -29,6 +29,36 @@ To start using `event`, just run `go get`:
 $ go get -u github.com/cheng-zhongliang/event
 ```
 
+### Events
+
+Supports Following events:
+
+- `EvRead` fires when the fd is readable.
+- `EvWrite` fires when the fd is writable.
+- `EvTimeout` fires when the timeout expires.
+- `EvPersist` fires repeatedly until the event is deleted.
+
+Let's take a look at the following example:
+
+```go
+ev := event.New(fd, event.EvRead|event.EvPersist|event.EvTimeout, Read, nil)
+```
+
+The event will be triggered when the fd is readable or the timeout expires.
+
+### Ticker
+
+This is a simple example of how to use the ticker:
+
+```go
+ev := event.New(-1, event.EvTimeout, Tick, nil)
+if err := base.AddEvent(ev, 1*time.Second); err != nil {
+	panic(err)
+}
+```
+
+The event will be triggered every second.
+
 ### Usage
 
 Example echo server that binds to port 1246:
