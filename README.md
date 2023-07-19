@@ -38,14 +38,7 @@ Supports Following events:
 - `EvTimeout` fires when the timeout expires.
 - `EvPersist` fires repeatedly until the event is deleted.
 
-Such as:
-
-```go
-ev := event.New(fd, event.EvRead|event.EvPersist|event.EvTimeout, Read, nil)
-base.AddEvent(ev, 1*time.Second)
-```
-
-The event will be triggered when the fd is readable or the timeout expires.
+These events can be used in combination such as EvRead|EvTimeout. When the event fires, the callback function will be called. 
 
 ### Ticker
 
