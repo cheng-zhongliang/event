@@ -1,10 +1,11 @@
 package event
 
 import (
-	. "event"
 	"syscall"
 	"testing"
 	"time"
+
+	. "github.com/cheng-zhongliang/event"
 )
 
 func TestNew(t *testing.T) {

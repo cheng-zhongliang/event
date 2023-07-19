@@ -1,9 +1,10 @@
 package main
 
 import (
-	"event"
 	"syscall"
 	"time"
+
+	"github.com/cheng-zhongliang/event"
 )
 
 func main() {

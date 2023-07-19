@@ -59,9 +59,10 @@ Example echo server that binds to port 1246:
 package main
 
 import (
-	"github.com/cheng-zhongliang/event"
 	"syscall"
 	"time"
+
+	"github.com/cheng-zhongliang/event"
 )
 
 func main() {
