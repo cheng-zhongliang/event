@@ -1,8 +1,6 @@
 package event
 
 import (
-	"container/list"
-
 	"time"
 )
 
@@ -25,9 +23,9 @@ const (
 // Event is the event to watch.
 type Event struct {
 	// Ele is the element in the total event list.
-	Ele *list.Element
+	Ele *EventElement
 	// ActiveEle is the element in the active event list.
-	ActiveEle *list.Element
+	ActiveEle *EventElement
 
 	// Fd is the file descriptor to watch.
 	Fd int
@@ -55,9 +53,9 @@ type EventBase struct {
 	// Poller is the event poller to watch events.
 	Poller *Epoll
 	// EvList is the list of all events.
-	EvList *list.List
+	EvList *EventList
 	// ActiveEvList is the list of active events.
-	ActiveEvList *list.List
+	ActiveEvList *EventList
 	// EventHeap is the min heap of timeout events.
 	EvHeap *EventHeap
 }
@@ -81,8 +79,8 @@ func NewBase() (*EventBase, error) {
 
 	return &EventBase{
 		Poller:       poller,
-		EvList:       list.New(),
-		ActiveEvList: list.New(),
+		EvList:       NewEventList(),
+		ActiveEvList: NewEventList(),
 		EvHeap:       NewEventHeap(),
 	}, nil
 }
@@ -193,7 +191,7 @@ func (bs *EventBase) OnActive(ev *Event, res uint32) {
 func (bs *EventBase) HandleActiveEvents() {
 	for e := bs.ActiveEvList.Front(); e != nil; {
 		next := e.Next()
-		ev := e.Value.(*Event)
+		ev := e.Value
 		if !ev.IsPersist() {
 			bs.DelEvent(ev)
 		} else {
