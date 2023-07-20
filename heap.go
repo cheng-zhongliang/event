@@ -16,13 +16,23 @@ func NewEventHeap() *EventHeap {
 func (h EventHeap) Len() int { return len(h) }
 
 // Less returns true if the event at index i is less than the event at index j.
-func (h EventHeap) Less(i, j int) bool { return h[i].Deadline < h[j].Deadline }
+func (h EventHeap) Less(i, j int) bool {
+	return h[i].Deadline < h[j].Deadline
+}
 
 // Swap swaps the events at index i and j.
-func (h EventHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h EventHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+	h[i].Index = i
+	h[j].Index = j
+}
 
 // Push pushes the event x onto the heap.
-func (h *EventHeap) Push(x interface{}) { *h = append(*h, x.(*Event)) }
+func (h *EventHeap) Push(x interface{}) {
+	ev := x.(*Event)
+	ev.Index = len(*h)
+	*h = append(*h, x.(*Event))
+}
 
 // Pop removes and returns the event at the root of the heap.
 func (h *EventHeap) Pop() interface{} {
@@ -44,3 +54,7 @@ func (h *EventHeap) PeekEvent() *Event { return (*h)[0] }
 
 // Empty returns true if the heap is empty.
 func (h *EventHeap) Empty() bool { return len(*h) == 0 }
+
+func (h *EventHeap) RemoveEvent(index int) {
+	heap.Remove(h, index)
+}

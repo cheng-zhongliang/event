@@ -18,14 +18,18 @@ const (
 	EvListInserted = 0x01
 	// EvListActive is the flag to indicate the event is in the active event list.
 	EvListActive = 0x02
+	// EvListTimeout is the flag to indicate the event is in the timeout event list.
+	EvListTimeout = 0x04
 )
 
 // Event is the event to watch.
 type Event struct {
 	// Ele is the element in the total event list.
-	Ele *EventElement
+	Ele *EventListEle
 	// ActiveEle is the element in the active event list.
-	ActiveEle *EventElement
+	ActiveEle *EventListEle
+	// Index is the index in the event heap.
+	Index int
 
 	// Fd is the file descriptor to watch.
 	Fd int
@@ -43,7 +47,7 @@ type Event struct {
 	Flags int
 
 	// Timeout is the timeout in milliseconds.
-	Timeout int64
+	Timeout time.Duration
 	// Deadline is the deadline in milliseconds.
 	Deadline int64
 }
@@ -87,44 +91,40 @@ func NewBase() (*EventBase, error) {
 
 // AddEvent adds an event to the event base.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
-	if ev.IsExist() {
-		return ErrEventAlreadyAdded
-	}
-
-	if ev.IsTimeout() {
-		ev.Timeout = timeout.Milliseconds()
+	if timeout > 0 && ev.Flags&EvListTimeout == 0 {
+		ev.Timeout = timeout
 		ev.Deadline = time.Now().Add(timeout).UnixMilli()
-		bs.EvHeap.PushEvent(ev)
+		bs.EventQueueInsert(ev, EvListTimeout)
 	}
 
-	bs.EventListInsert(ev, EvListInserted)
-
-	if ev.IsRead() || ev.IsWrite() {
-		return bs.Poller.Add(ev)
-	} else {
-		return nil
+	if ev.Flags&EvListInserted == 0 {
+		bs.EventQueueInsert(ev, EvListInserted)
+		if ev.Events&(EvRead|EvWrite) != 0 {
+			return bs.Poller.Add(ev)
+		}
 	}
+
+	return nil
 }
 
 // DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
-	if !ev.IsExist() {
-		return ErrEventNotAdded
+	if ev.Flags&EvListTimeout != 0 {
+		bs.EventQueueRemove(ev, EvListTimeout)
 	}
 
-	if ev.IsActive() {
-		bs.EventListRemove(ev, EvListActive)
+	if ev.Flags&EvListActive != 0 {
+		bs.EventQueueRemove(ev, EvListActive)
 	}
 
-	if ev.IsExist() {
-		bs.EventListRemove(ev, EvListInserted)
+	if ev.Flags&EvListInserted != 0 {
+		bs.EventQueueRemove(ev, EvListInserted)
+		if ev.Events&(EvRead|EvWrite) != 0 {
+			return bs.Poller.Del(ev)
+		}
 	}
 
-	if ev.IsRead() || ev.IsWrite() {
-		return bs.Poller.Del(ev)
-	} else {
-		return nil
-	}
+	return nil
 }
 
 // Dispatch waits for events and dispatches them.
@@ -164,27 +164,25 @@ func (bs *EventBase) OnTimeout() {
 	now := time.Now().UnixMilli()
 	for !bs.EvHeap.Empty() {
 		ev := bs.EvHeap.PeekEvent()
-		if !ev.IsExist() {
-			bs.EvHeap.PopEvent()
-			continue
-		}
 		if ev.Deadline > now {
 			break
 		}
-		bs.EvHeap.PopEvent()
+
+		bs.DelEvent(ev)
+
 		bs.OnActive(ev, EvTimeout)
 	}
 }
 
 // OnEvent adds an event to the active event list.
 func (bs *EventBase) OnActive(ev *Event, res uint32) {
-	if ev.IsActive() {
+	if ev.Flags&EvListActive != 0 {
 		ev.Res |= res
 		return
 	}
 
 	ev.Res = res
-	bs.EventListInsert(ev, EvListActive)
+	bs.EventQueueInsert(ev, EvListActive)
 }
 
 // HandleActiveEvents handles active events.
@@ -192,27 +190,25 @@ func (bs *EventBase) HandleActiveEvents() {
 	for e := bs.ActiveEvList.Front(); e != nil; {
 		next := e.Next()
 		ev := e.Value
-		if !ev.IsPersist() {
-			bs.DelEvent(ev)
+		if ev.Events&EvPersist != 0 {
+			bs.EventQueueRemove(ev, EvListActive)
 		} else {
-			bs.EventListRemove(ev, EvListActive)
+			bs.DelEvent(ev)
 		}
 		e = next
 
-		if ev.IsTimeout() && ev.IsExist() {
-			now := time.Now().UnixMilli()
-			ev.Deadline = now + ev.Timeout
-			bs.EvHeap.PushEvent(ev)
+		if ev.Events&EvTimeout != 0 && ev.Events&EvPersist != 0 {
+			bs.AddEvent(ev, ev.Timeout)
 		}
 
 		ev.Cb(ev.Fd, ev.Res, ev.Arg)
 	}
 }
 
-// EventListInsert inserts an event into the event list.
+// EventQueueInsert inserts an event into the event list.
 // Double insertion is possible for active events.
-func (bs *EventBase) EventListInsert(ev *Event, which int) {
-	if ev.Flags&which != 0 && ev.IsActive() {
+func (bs *EventBase) EventQueueInsert(ev *Event, which int) {
+	if ev.Flags&which != 0 && ev.Flags&EvListActive != 0 {
 		return
 	}
 
@@ -222,11 +218,13 @@ func (bs *EventBase) EventListInsert(ev *Event, which int) {
 		ev.Ele = bs.EvList.PushBack(ev)
 	case EvListActive:
 		ev.ActiveEle = bs.ActiveEvList.PushBack(ev)
+	case EvListTimeout:
+		bs.EvHeap.PushEvent(ev)
 	}
 }
 
-// EventListRemove removes an event from the event list.
-func (bs *EventBase) EventListRemove(ev *Event, which int) {
+// EventQueueRemove removes an event from the event list.
+func (bs *EventBase) EventQueueRemove(ev *Event, which int) {
 	if ev.Flags&which == 0 {
 		return
 	}
@@ -239,35 +237,8 @@ func (bs *EventBase) EventListRemove(ev *Event, which int) {
 	case EvListActive:
 		bs.ActiveEvList.Remove(ev.ActiveEle)
 		ev.ActiveEle = nil
+	case EvListTimeout:
+		bs.EvHeap.RemoveEvent(ev.Index)
+		ev.Index = -1
 	}
-}
-
-// IsExist return true if the event already inserted.
-func (ev *Event) IsExist() bool {
-	return ev.Flags&EvListInserted != 0
-}
-
-// IsActive return true if the event active.
-func (ev *Event) IsActive() bool {
-	return ev.Flags&EvListActive != 0
-}
-
-// IsTimeout return true if the event is timeout.
-func (ev *Event) IsTimeout() bool {
-	return ev.Events&EvTimeout != 0
-}
-
-// IsRead return true if the event is read.
-func (ev *Event) IsRead() bool {
-	return ev.Events&EvRead != 0
-}
-
-// IsWrite return true if the event is write.
-func (ev *Event) IsWrite() bool {
-	return ev.Events&EvWrite != 0
-}
-
-// IsPersist return true if the event is persist.
-func (ev *Event) IsPersist() bool {
-	return ev.Events&EvPersist != 0
 }

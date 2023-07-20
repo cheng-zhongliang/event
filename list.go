@@ -1,14 +1,14 @@
 package event
 
-// EventElement is an element of a linked list.
-type EventElement struct {
-	next, prev *EventElement
+// EventListEle is an element of a linked list.
+type EventListEle struct {
+	next, prev *EventListEle
 	list       *EventList
 	Value      *Event
 }
 
 // Next returns the next list element or nil.
-func (e *EventElement) Next() *EventElement {
+func (e *EventListEle) Next() *EventListEle {
 	if p := e.next; e.list != nil && p != &e.list.root {
 		return p
 	}
@@ -16,7 +16,7 @@ func (e *EventElement) Next() *EventElement {
 }
 
 // Prev returns the previous list element or nil.
-func (e *EventElement) Prev() *EventElement {
+func (e *EventListEle) Prev() *EventListEle {
 	if p := e.prev; e.list != nil && p != &e.list.root {
 		return p
 	}
@@ -25,7 +25,7 @@ func (e *EventElement) Prev() *EventElement {
 
 // EventList represents a doubly linked list.
 type EventList struct {
-	root EventElement
+	root EventListEle
 	len  int
 }
 
@@ -44,7 +44,7 @@ func (l *EventList) Len() int {
 }
 
 // Front returns the first element of list l or nil.
-func (l *EventList) Front() *EventElement {
+func (l *EventList) Front() *EventListEle {
 	if l.len == 0 {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (l *EventList) Front() *EventElement {
 }
 
 // Back returns the last element of list l or nil.
-func (l *EventList) Back() *EventElement {
+func (l *EventList) Back() *EventListEle {
 	if l.len == 0 {
 		return nil
 	}
@@ -60,8 +60,8 @@ func (l *EventList) Back() *EventElement {
 }
 
 // PushFront inserts a new element e with value v at the front of list l and returns e.
-func (l *EventList) PushBack(ev *Event) *EventElement {
-	e := &EventElement{list: l, Value: ev}
+func (l *EventList) PushBack(ev *Event) *EventListEle {
+	e := &EventListEle{list: l, Value: ev}
 	n := &l.root
 	p := n.prev
 	e.next = n
@@ -73,7 +73,7 @@ func (l *EventList) PushBack(ev *Event) *EventElement {
 }
 
 // PushBack inserts a new element e with value v at the back of list l and returns e.
-func (l *EventList) Remove(e *EventElement) *Event {
+func (l *EventList) Remove(e *EventListEle) *Event {
 	e.prev.next = e.next
 	e.next.prev = e.prev
 	e.next = nil
