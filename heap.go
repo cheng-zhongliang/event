@@ -55,6 +55,7 @@ func (h *EventHeap) PeekEvent() *Event { return (*h)[0] }
 // Empty returns true if the heap is empty.
 func (h *EventHeap) Empty() bool { return len(*h) == 0 }
 
+// RemoveEvent remove the event at index.
 func (h *EventHeap) RemoveEvent(index int) {
 	heap.Remove(h, index)
 }
