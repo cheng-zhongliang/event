@@ -219,7 +219,7 @@ func (bs *EventBase) EventQueueInsert(ev *Event, which int) {
 	case EvListActive:
 		ev.ActiveEle = bs.ActiveEvList.PushBack(ev)
 	case EvListTimeout:
-		bs.EvHeap.PushEvent(ev)
+		ev.Index = bs.EvHeap.PushEvent(ev)
 	}
 }
 
