@@ -30,8 +30,8 @@ func (h EventHeap) Swap(i, j int) {
 // Push pushes the event x onto the heap.
 func (h *EventHeap) Push(x interface{}) {
 	ev := x.(*Event)
-	ev.Index = len(*h)
 	*h = append(*h, x.(*Event))
+	ev.Index = len(*h) - 1
 }
 
 // Pop removes and returns the event at the root of the heap.
