@@ -2,19 +2,23 @@ package event
 
 import (
 	"syscall"
+	"unsafe"
 )
+
+// FdEvent is the event of a file descriptor.
+type FdEvent struct {
+	R *Event
+	W *Event
+}
 
 // Epoll is the epoll poller implementation.
 type Epoll struct {
 	// Fd is the file descriptor of epoll.
 	Fd int
 	// Evs is the fd to event map.
-	FdEvs map[int]*struct {
-		// R is the read event.
-		R *Event
-		// W is the write event.
-		W *Event
-	}
+	// It is used to find the event by fd.
+	// It is also used to prevent the event from being garbage collected.
+	FdEvs map[int]*FdEvent
 	// EpollEvs is the epoll events.
 	EpollEvs []syscall.EpollEvent
 }
@@ -28,7 +32,7 @@ func NewEpoll() (*Epoll, error) {
 
 	return &Epoll{
 		Fd:       fd,
-		FdEvs:    make(map[int]*struct{ R, W *Event }),
+		FdEvs:    make(map[int]*FdEvent),
 		EpollEvs: make([]syscall.EpollEvent, 0xFF),
 	}, nil
 }
@@ -36,7 +40,7 @@ func NewEpoll() (*Epoll, error) {
 // Add adds an event to the epoll poller.
 // If the event is already added, it will be modified.
 func (ep *Epoll) Add(ev *Event) error {
-	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
+	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_ADD
 
 	es, ok := ep.FdEvs[ev.Fd]
@@ -49,9 +53,11 @@ func (ep *Epoll) Add(ev *Event) error {
 			epEv.Events |= syscall.EPOLLOUT
 		}
 	} else {
-		es = &struct{ R, W *Event }{}
+		es = &FdEvent{}
 		ep.FdEvs[ev.Fd] = es
 	}
+
+	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
 	if ev.Events&EvRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
@@ -69,7 +75,7 @@ func (ep *Epoll) Add(ev *Event) error {
 // If the event is not added, it will return an error.
 // If the event is added twice, it will be modified.
 func (ep *Epoll) Del(ev *Event) error {
-	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
+	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_DEL
 
 	if ev.Events&EvRead != 0 {
@@ -78,6 +84,13 @@ func (ep *Epoll) Del(ev *Event) error {
 	if ev.Events&EvWrite != 0 {
 		epEv.Events |= syscall.EPOLLOUT
 	}
+
+	es, ok := ep.FdEvs[ev.Fd]
+	if !ok {
+		return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
+	}
+
+	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
 	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
 		if epEv.Events&syscall.EPOLLIN != 0 && ep.FdEvs[ev.Fd].W != nil {
@@ -89,7 +102,9 @@ func (ep *Epoll) Del(ev *Event) error {
 			epEv.Events = syscall.EPOLLIN
 			ep.FdEvs[ev.Fd].W = nil
 		}
-	} else {
+	}
+
+	if op == syscall.EPOLL_CTL_DEL {
 		delete(ep.FdEvs, ev.Fd)
 	}
 
@@ -108,10 +123,7 @@ func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 	for i := 0; i < n; i++ {
 		var evRead, evWrite *Event
 		what := ep.EpollEvs[i].Events
-		es, ok := ep.FdEvs[int(ep.EpollEvs[i].Fd)]
-		if !ok {
-			continue
-		}
+		es := *(**FdEvent)(unsafe.Pointer(&ep.EpollEvs[i].Fd))
 
 		if what&syscall.EPOLLIN != 0 {
 			evRead = es.R
