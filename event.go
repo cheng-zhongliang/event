@@ -11,8 +11,11 @@ const (
 	EvWrite = 1 << iota
 	// EvTimeout is timeout event
 	EvTimeout = 1 << iota
+
 	// EvPersist is persistent event.
-	EvPersist = 1 << iota
+	EvPersist = 0x10
+	// EvET is edge-triggered behavior, if supported by the backend.
+	EvET = 0x20
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01

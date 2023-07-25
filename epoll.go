@@ -7,8 +7,14 @@ import (
 
 // FdEvent is the event of a file descriptor.
 type FdEvent struct {
+	// R is the read event.
 	R *Event
+	// W is the write event.
 	W *Event
+	// M is the event trigger mode.
+	// ET or 0.
+	// 0 means LT.
+	M uint32
 }
 
 // Epoll is the epoll poller implementation.
@@ -55,9 +61,14 @@ func (ep *Epoll) Add(ev *Event) error {
 	} else {
 		es = &FdEvent{}
 		ep.FdEvs[ev.Fd] = es
+		if ev.Events&EvET != 0 {
+			es.M = -syscall.EPOLLET
+		}
 	}
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
+
+	epEv.Events |= es.M
 
 	if ev.Events&EvRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
@@ -91,6 +102,8 @@ func (ep *Epoll) Del(ev *Event) error {
 	}
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
+
+	epEv.Events |= es.M
 
 	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
 		if epEv.Events&syscall.EPOLLIN != 0 && ep.FdEvs[ev.Fd].W != nil {
