@@ -62,7 +62,8 @@ func (ep *Epoll) Add(ev *Event) error {
 		es = &FdEvent{}
 		ep.FdEvs[ev.Fd] = es
 		if ev.Events&EvET != 0 {
-			es.M = -syscall.EPOLLET
+			// see Issue 832
+			es.M = syscall.EPOLLET & 0xFFFFFFFF
 		}
 	}
 
