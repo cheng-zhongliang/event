@@ -35,7 +35,7 @@ type Epoll struct {
 	SignalFd0 int
 	// SignalFd1 is the write end of the signal pipe.
 	SignalFd1 int
-	// OnSignal is the callback function when a signal is received.
+	// OnActive is the callback function when event trigger.
 	OnActive func(ev *Event, res uint32)
 	// ExitCh is the exit channel.
 	ExitCh chan struct{}
