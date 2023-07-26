@@ -81,7 +81,7 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 
 // NewBase creates a new event base.
 func NewBase() (bs *EventBase, err error) {
-	poller, err := NewEpoll(bs.OnActive)
+	poller, err := NewEpoll()
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 // Dispatch waits for events and dispatches them.
 func (bs *EventBase) Dispatch() error {
 	for {
-		err := bs.Poller.Polling(bs.WaitTime())
+		err := bs.Poller.Polling(bs.OnActive, bs.WaitTime())
 		if err != nil {
 			return err
 		}

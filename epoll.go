@@ -35,8 +35,6 @@ type Epoll struct {
 	SignalFd0 int
 	// SignalFd1 is the write end of the signal pipe.
 	SignalFd1 int
-	// OnActive is the callback function when event trigger.
-	OnActive func(ev *Event, res uint32)
 	// ExitCh is the exit channel.
 	ExitCh chan struct{}
 	// Wg is the wait group.
@@ -44,7 +42,7 @@ type Epoll struct {
 }
 
 // NewEpoll creates a new epoll poller.
-func NewEpoll(onActive func(ev *Event, res uint32)) (*Epoll, error) {
+func NewEpoll() (*Epoll, error) {
 	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, err
@@ -54,7 +52,6 @@ func NewEpoll(onActive func(ev *Event, res uint32)) (*Epoll, error) {
 		Fd:        fd,
 		FdEvs:     make(map[int]*FdEvent),
 		EpollEvs:  make([]syscall.EpollEvent, 0xFF),
-		OnActive:  onActive,
 		SignalEvs: map[int]*Event{},
 		ExitCh:    make(chan struct{}),
 		Wg:        &sync.WaitGroup{},
@@ -75,7 +72,7 @@ func (ep *Epoll) Add(ev *Event) error {
 		return nil
 	}
 
-	epEv := &syscall.EpollEvent{}
+	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
 	op := syscall.EPOLL_CTL_ADD
 
 	es, ok := ep.FdEvs[ev.Fd]
@@ -121,7 +118,7 @@ func (ep *Epoll) Del(ev *Event) error {
 		return nil
 	}
 
-	epEv := &syscall.EpollEvent{}
+	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
 	op := syscall.EPOLL_CTL_DEL
 
 	if ev.Events&EvRead != 0 {
@@ -162,7 +159,7 @@ func (ep *Epoll) Del(ev *Event) error {
 // Polling polls the epoll poller.
 // It will call the callback function when an event is ready.
 // It will block until an event is ready.
-func (ep *Epoll) Polling(timeout int) error {
+func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, timeout)
 	if err != nil && !TemporaryErr(err) {
 		return err
@@ -170,7 +167,7 @@ func (ep *Epoll) Polling(timeout int) error {
 
 	for i := 0; i < n; i++ {
 		if ep.EpollEvs[i].Fd == int32(ep.SignalFd0) {
-			ep.OnSignal(ep.SignalFd0)
+			ep.OnSignal(cb, ep.SignalFd0)
 			continue
 		}
 
@@ -186,10 +183,10 @@ func (ep *Epoll) Polling(timeout int) error {
 		}
 
 		if evRead != nil {
-			ep.OnActive(evRead, EvRead)
+			cb(evRead, EvRead)
 		}
 		if evWrite != nil {
-			ep.OnActive(evWrite, EvWrite)
+			cb(evWrite, EvWrite)
 		}
 	}
 
@@ -231,11 +228,11 @@ func (ep *Epoll) InitSignalPoll() error {
 		}
 	}()
 
-	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_ADD, ep.SignalFd0, &syscall.EpollEvent{Events: syscall.EPOLLIN})
+	return syscall.EpollCtl(ep.Fd, syscall.EPOLL_CTL_ADD, ep.SignalFd0, &syscall.EpollEvent{Events: syscall.EPOLLIN, Fd: int32(ep.SignalFd0)})
 }
 
 // OnSignal is the callback function when a signal is received.
-func (ep *Epoll) OnSignal(fd int) {
+func (ep *Epoll) OnSignal(cb func(ev *Event, res uint32), fd int) {
 	buf := make([]byte, binary.MaxVarintLen64)
 	syscall.Read(fd, buf)
 
@@ -245,5 +242,5 @@ func (ep *Epoll) OnSignal(fd int) {
 		return
 	}
 
-	ep.OnActive(ev, EvSignal)
+	cb(ev, EvSignal)
 }
