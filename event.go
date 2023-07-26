@@ -11,6 +11,8 @@ const (
 	EvWrite = 1 << iota
 	// EvTimeout is timeout event
 	EvTimeout = 1 << iota
+	// EvSignal is signal event.
+	EvSignal = 1 << iota
 
 	// EvPersist is persistent event.
 	EvPersist = 0x10
@@ -78,8 +80,8 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 }
 
 // NewBase creates a new event base.
-func NewBase() (*EventBase, error) {
-	poller, err := NewEpoll()
+func NewBase() (bs *EventBase, err error) {
+	poller, err := NewEpoll(bs.OnActive)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +104,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 	if ev.Flags&EvListInserted == 0 {
 		bs.EventQueueInsert(ev, EvListInserted)
-		if ev.Events&(EvRead|EvWrite) != 0 {
+		if ev.Events&(EvRead|EvWrite|EvSignal) != 0 {
 			return bs.Poller.Add(ev)
 		}
 	}
@@ -122,7 +124,7 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 
 	if ev.Flags&EvListInserted != 0 {
 		bs.EventQueueRemove(ev, EvListInserted)
-		if ev.Events&(EvRead|EvWrite) != 0 {
+		if ev.Events&(EvRead|EvWrite|EvSignal) != 0 {
 			return bs.Poller.Del(ev)
 		}
 	}
@@ -133,7 +135,7 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 // Dispatch waits for events and dispatches them.
 func (bs *EventBase) Dispatch() error {
 	for {
-		err := bs.Poller.Polling(bs.OnActive, bs.WaitTime())
+		err := bs.Poller.Polling(bs.WaitTime())
 		if err != nil {
 			return err
 		}
