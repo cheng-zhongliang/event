@@ -1,7 +1,6 @@
 package event
 
 import (
-	"encoding/binary"
 	"os"
 	"os/signal"
 	"sync"
@@ -218,10 +217,7 @@ func (ep *Epoll) InitSignalPoll() error {
 		for {
 			select {
 			case sig := <-ch:
-				sigNum := sig.(syscall.Signal)
-				buf := make([]byte, binary.MaxVarintLen64)
-				n := binary.PutUvarint(buf, uint64(sigNum))
-				syscall.Write(ep.SignalFd1, buf[:n])
+				syscall.Write(ep.SignalFd1, []byte{byte(sig.(syscall.Signal))})
 			case <-ep.ExitCh:
 				return
 			}
@@ -233,11 +229,10 @@ func (ep *Epoll) InitSignalPoll() error {
 
 // OnSignal is the callback function when a signal is received.
 func (ep *Epoll) OnSignal(cb func(ev *Event, res uint32), fd int) {
-	buf := make([]byte, binary.MaxVarintLen64)
+	buf := make([]byte, 1)
 	syscall.Read(fd, buf)
 
-	sigNum, _ := binary.Uvarint(buf)
-	ev, ok := ep.SignalEvs[int(sigNum)]
+	ev, ok := ep.SignalEvs[int(buf[0])]
 	if !ok {
 		return
 	}
