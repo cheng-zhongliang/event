@@ -182,11 +182,19 @@ func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 		what := ep.EpollEvs[i].Events
 		es := *(**FdEvent)(unsafe.Pointer(&ep.EpollEvs[i].Fd))
 
-		if what&syscall.EPOLLIN != 0 {
+		if what&syscall.EPOLLERR != 0 {
 			evRead = es.R
-		}
-		if what&syscall.EPOLLOUT != 0 {
 			evWrite = es.W
+		} else if what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0 {
+			evRead = es.R
+			evWrite = es.W
+		} else {
+			if what&syscall.EPOLLIN != 0 {
+				evRead = es.R
+			}
+			if what&syscall.EPOLLOUT != 0 {
+				evWrite = es.W
+			}
 		}
 
 		if evRead != nil {
