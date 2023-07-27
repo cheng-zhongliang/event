@@ -1,6 +1,7 @@
 package event
 
 import (
+	"syscall"
 	"time"
 )
 
@@ -77,6 +78,21 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 		Cb:     callback,
 		Arg:    arg,
 	}
+}
+
+// NewSignal creates a new signal event.
+func NewSignal(signal syscall.Signal, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+	return New(int(signal), EvSignal, callback, arg)
+}
+
+// NewTimer creates a new timer event.
+func NewTimer(timeout time.Duration, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+	return New(-1, EvTimeout, callback, arg)
+}
+
+// NewTicker creates a new ticker event.
+func NewTicker(timeout time.Duration, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+	return New(-1, EvTimeout|EvPersist, callback, arg)
 }
 
 // NewBase creates a new event base.
