@@ -74,7 +74,7 @@ func (ep *Epoll) Add(ev *Event) error {
 		return nil
 	}
 
-	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
+	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_ADD
 
 	es, ok := ep.FdEvs[ev.Fd]
@@ -120,7 +120,7 @@ func (ep *Epoll) Del(ev *Event) error {
 		return nil
 	}
 
-	epEv := &syscall.EpollEvent{Fd: int32(ev.Fd)}
+	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_DEL
 
 	if ev.Events&EvRead != 0 {
