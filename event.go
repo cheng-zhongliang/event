@@ -58,18 +58,6 @@ type Event struct {
 	Deadline int64
 }
 
-// EventBase is the base of all events.
-type EventBase struct {
-	// Poller is the event poller to watch events.
-	Poller *Epoll
-	// EvList is the list of all events.
-	EvList *EventList
-	// ActiveEvList is the list of active events.
-	ActiveEvList *EventList
-	// EventHeap is the min heap of timeout events.
-	EvHeap *EventHeap
-}
-
 // New creates a new event.
 func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	return &Event{
@@ -93,6 +81,18 @@ func NewTimer(timeout time.Duration, callback func(fd int, events uint32, arg in
 // NewTicker creates a new ticker event.
 func NewTicker(timeout time.Duration, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	return New(-1, EvTimeout|EvPersist, callback, arg)
+}
+
+// EventBase is the base of all events.
+type EventBase struct {
+	// Poller is the event poller to watch events.
+	Poller *Epoll
+	// EvList is the list of all events.
+	EvList *EventList
+	// ActiveEvList is the list of active events.
+	ActiveEvList *EventList
+	// EventHeap is the min heap of timeout events.
+	EvHeap *EventHeap
 }
 
 // NewBase creates a new event base.
