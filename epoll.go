@@ -89,16 +89,9 @@ func (ep *Epoll) Add(ev *Event) error {
 	} else {
 		es = &FdEvent{}
 		ep.FdEvs[ev.Fd] = es
-		if ev.Events&EvET != 0 {
-			es.E = true
-		}
 	}
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
-
-	if es.E {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
-	}
 
 	if ev.Events&EvRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
@@ -107,6 +100,9 @@ func (ep *Epoll) Add(ev *Event) error {
 	if ev.Events&EvWrite != 0 {
 		epEv.Events |= syscall.EPOLLOUT
 		es.W = ev
+	}
+	if es.E = ev.Events&EvET != 0; es.E {
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
@@ -138,12 +134,6 @@ func (ep *Epoll) Del(ev *Event) error {
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	if ev.Events&EvET == 0 && es.E {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
-	} else {
-		es.E = false
-	}
-
 	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
 		if epEv.Events&syscall.EPOLLIN != 0 && ep.FdEvs[ev.Fd].W != nil {
 			op = syscall.EPOLL_CTL_MOD
@@ -154,6 +144,12 @@ func (ep *Epoll) Del(ev *Event) error {
 			epEv.Events = syscall.EPOLLIN
 			ep.FdEvs[ev.Fd].W = nil
 		}
+	}
+
+	if ev.Events&EvET == 0 && es.E {
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
+	} else {
+		es.E = false
 	}
 
 	if op == syscall.EPOLL_CTL_DEL {
@@ -257,7 +253,6 @@ func (ep *Epoll) OnSignal(cb func(ev *Event, res uint32), fd int) {
 // SubscribeSignal subscribes the signal.
 func (ep *Epoll) SubscribeSignal(ev *Event) {
 	ep.SignalEvs[ev.Fd] = ev
-	signal.Stop(ep.SignalCh)
 	signals := make([]os.Signal, 0, len(ep.SignalEvs))
 	for s := range ep.SignalEvs {
 		signals = append(signals, syscall.Signal(s))
