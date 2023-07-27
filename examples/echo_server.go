@@ -13,7 +13,7 @@ func main() {
 	}
 
 	fd := Socket()
-	ev := event.New(fd, event.EvRead, Accept, base)
+	ev := event.New(fd, event.EvRead|event.EvPersist, Accept, base)
 	if err := base.AddEvent(ev, 0); err != nil {
 		panic(err)
 	}

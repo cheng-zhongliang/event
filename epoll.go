@@ -15,7 +15,7 @@ type FdEvent struct {
 	// W is the write event.
 	W *Event
 	// E is the Edge-triggered behavior.
-	E uint32
+	E bool
 }
 
 // Epoll is the epoll poller implementation.
@@ -90,14 +90,15 @@ func (ep *Epoll) Add(ev *Event) error {
 		es = &FdEvent{}
 		ep.FdEvs[ev.Fd] = es
 		if ev.Events&EvET != 0 {
-			// see go issue 832
-			es.E = syscall.EPOLLET & 0xFFFFFFFF
+			es.E = true
 		}
 	}
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	epEv.Events |= es.E
+	if es.E {
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
+	}
 
 	if ev.Events&EvRead != 0 {
 		epEv.Events |= syscall.EPOLLIN
@@ -137,7 +138,11 @@ func (ep *Epoll) Del(ev *Event) error {
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	epEv.Events |= es.E
+	if ev.Events&EvET == 0 && es.E {
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
+	} else {
+		es.E = false
+	}
 
 	if epEv.Events&(syscall.EPOLLIN|syscall.EPOLLOUT) != (syscall.EPOLLIN | syscall.EPOLLOUT) {
 		if epEv.Events&syscall.EPOLLIN != 0 && ep.FdEvs[ev.Fd].W != nil {
