@@ -30,6 +30,8 @@ type Epoll struct {
 	EpollEvs []syscall.EpollEvent
 	// SignalEvs is the signal events.
 	SignalEvs map[int]*Event
+	// SignalCh is the signal channel.
+	SignalCh chan os.Signal
 	// SignalFd0 is the read end of the signal pipe.
 	SignalFd0 int
 	// SignalFd1 is the write end of the signal pipe.
@@ -52,6 +54,7 @@ func NewEpoll() (*Epoll, error) {
 		FdEvs:     make(map[int]*FdEvent),
 		EpollEvs:  make([]syscall.EpollEvent, 0xFF),
 		SignalEvs: map[int]*Event{},
+		SignalCh:  make(chan os.Signal, 1),
 		ExitCh:    make(chan struct{}),
 		Wg:        &sync.WaitGroup{},
 	}
@@ -67,7 +70,7 @@ func NewEpoll() (*Epoll, error) {
 // If the event is already added, it will be modified.
 func (ep *Epoll) Add(ev *Event) error {
 	if ev.Events&EvSignal != 0 {
-		ep.SignalEvs[ev.Fd] = ev
+		ep.SubscribeSignal(ev)
 		return nil
 	}
 
@@ -113,7 +116,7 @@ func (ep *Epoll) Add(ev *Event) error {
 // If the event is added twice, it will be modified.
 func (ep *Epoll) Del(ev *Event) error {
 	if ev.Events&EvSignal != 0 {
-		delete(ep.SignalEvs, ev.Fd)
+		ep.UnsubscribeSignal(ev)
 		return nil
 	}
 
@@ -212,11 +215,9 @@ func (ep *Epoll) InitSignalPoll() error {
 	ep.Wg.Add(1)
 	go func() {
 		defer ep.Wg.Done()
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch)
 		for {
 			select {
-			case sig := <-ch:
+			case sig := <-ep.SignalCh:
 				syscall.Write(ep.SignalFd1, []byte{byte(sig.(syscall.Signal))})
 			case <-ep.ExitCh:
 				return
@@ -238,4 +239,26 @@ func (ep *Epoll) OnSignal(cb func(ev *Event, res uint32), fd int) {
 	}
 
 	cb(ev, EvSignal)
+}
+
+// SubscribeSignal subscribes the signal.
+func (ep *Epoll) SubscribeSignal(ev *Event) {
+	ep.SignalEvs[ev.Fd] = ev
+	signal.Stop(ep.SignalCh)
+	signals := make([]os.Signal, 0, len(ep.SignalEvs))
+	for s := range ep.SignalEvs {
+		signals = append(signals, syscall.Signal(s))
+	}
+	signal.Notify(ep.SignalCh, signals...)
+}
+
+// UnsubscribeSignal unsubscribes the signal.
+func (ep *Epoll) UnsubscribeSignal(ev *Event) {
+	delete(ep.SignalEvs, ev.Fd)
+	signal.Stop(ep.SignalCh)
+	signals := make([]os.Signal, 0, len(ep.SignalEvs))
+	for s := range ep.SignalEvs {
+		signals = append(signals, syscall.Signal(s))
+	}
+	signal.Notify(ep.SignalCh, signals...)
 }
