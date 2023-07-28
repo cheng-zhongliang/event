@@ -60,7 +60,6 @@ package main
 
 import (
 	"syscall"
-	"time"
 
 	"github.com/cheng-zhongliang/event"
 )
@@ -72,13 +71,13 @@ func main() {
 	}
 
 	fd := Socket()
-	ev := event.New(fd, event.EvRead, Accept, base)
+	ev := event.New(fd, event.EvRead|event.EvPersist, Accept, base)
 	if err := base.AddEvent(ev, 0); err != nil {
 		panic(err)
 	}
 
-	exitEv := event.New(-1, event.EvTimeout, Exit, base)
-	if err := base.AddEvent(exitEv, 1*time.Minute); err != nil {
+	exitEv := event.NewSignal(syscall.SIGINT, Exit, base)
+	if err := base.AddEvent(exitEv, 0); err != nil {
 		panic(err)
 	}
 
