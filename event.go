@@ -28,11 +28,11 @@ const (
 	EvListTimeout = 0x04
 
 	// High is the high priority.
-	High EventPriority = 1
+	High EventPriority = 0b00
 	// Middle is the middle priority.
-	Middle EventPriority = 2
+	Middle EventPriority = 0b01
 	// Low is the low priority.
-	Low EventPriority = 3
+	Low EventPriority = 0b10
 )
 
 // Event is the event to watch.
