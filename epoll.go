@@ -14,8 +14,6 @@ type FdEvent struct {
 	R *Event
 	// W is the write event.
 	W *Event
-	// E is the Edge-triggered behavior.
-	E bool
 }
 
 // Epoll is the epoll poller implementation.
@@ -101,9 +99,6 @@ func (ep *Epoll) Add(ev *Event) error {
 		epEv.Events |= syscall.EPOLLOUT
 		es.W = ev
 	}
-	if es.E = ev.Events&EvET != 0; es.E {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
-	}
 
 	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
 }
@@ -146,12 +141,6 @@ func (ep *Epoll) Del(ev *Event) error {
 		}
 	}
 
-	if ev.Events&EvET == 0 && es.E {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
-	} else {
-		es.E = false
-	}
-
 	if op == syscall.EPOLL_CTL_DEL {
 		delete(ep.FdEvs, ev.Fd)
 	}
@@ -178,10 +167,7 @@ func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 		what := ep.EpollEvs[i].Events
 		es := *(**FdEvent)(unsafe.Pointer(&ep.EpollEvs[i].Fd))
 
-		if what&syscall.EPOLLERR != 0 {
-			evRead = es.R
-			evWrite = es.W
-		} else if what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0 {
+		if what&syscall.EPOLLERR != 0 || (what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0) {
 			evRead = es.R
 			evWrite = es.W
 		} else {
