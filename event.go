@@ -91,7 +91,7 @@ type EventBase struct {
 	// EvList is the list of all events.
 	EvList *EventList
 	// ActiveEvList is the list of active events.
-	ActiveEvLists [3]*EventList
+	ActiveEvLists []*EventList
 	// EventHeap is the min heap of timeout events.
 	EvHeap *EventHeap
 }
@@ -106,7 +106,7 @@ func NewBase() (*EventBase, error) {
 	return &EventBase{
 		Poller:        poller,
 		EvList:        NewEventList(),
-		ActiveEvLists: [3]*EventList{NewEventList(), NewEventList(), NewEventList()},
+		ActiveEvLists: []*EventList{NewEventList(), NewEventList(), NewEventList()},
 		EvHeap:        NewEventHeap(),
 	}, nil
 }
@@ -209,7 +209,7 @@ func (bs *EventBase) OnActive(ev *Event, res uint32) {
 
 // HandleActiveEvents handles active events.
 func (bs *EventBase) HandleActiveEvents() {
-	for i := 0; i < 3; i++ {
+	for i := range bs.ActiveEvLists {
 		for e := bs.ActiveEvLists[i].Front(); e != nil; {
 			next := e.Next()
 			ev := e.Value

@@ -67,6 +67,7 @@ func NewEpoll() (*Epoll, error) {
 func (ep *Epoll) Add(ev *Event) error {
 	if ev.Events&EvSignal != 0 {
 		ep.SignalEvs[ev.Fd] = ev
+		ep.SignalPoller.SubscribeSignal(ev.Fd)
 		return nil
 	}
 
@@ -121,10 +122,7 @@ func (ep *Epoll) Del(ev *Event) error {
 		epEv.Events |= syscall.EPOLLOUT
 	}
 
-	es, ok := ep.FdEvs[ev.Fd]
-	if !ok {
-		return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
-	}
+	es := ep.FdEvs[ev.Fd]
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
