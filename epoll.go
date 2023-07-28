@@ -108,6 +108,7 @@ func (ep *Epoll) Del(ev *Event) error {
 	if ev.Events&EvSignal != 0 {
 		delete(ep.SignalEvs, ev.Fd)
 		ep.SignalPoller.UnsubscribeSignal(ev.Fd)
+		return nil
 	}
 
 	epEv := &syscall.EpollEvent{}
