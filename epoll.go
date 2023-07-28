@@ -57,7 +57,7 @@ func NewEpoll() (*Epoll, error) {
 		SignalFd1: signalFds[1],
 	}
 
-	ep.SignalPoller = NewSignalPoller(ep.Trigger)
+	ep.SignalPoller = NewSignalPoller(ep.TriggerSignal)
 
 	return ep, nil
 }
@@ -198,7 +198,7 @@ func (ep *Epoll) Close() error {
 }
 
 // Trigger triggers a signal.
-func (ep *Epoll) Trigger(signal int) {
+func (ep *Epoll) TriggerSignal(signal int) {
 	syscall.Write(ep.SignalFd1, []byte{byte(signal)})
 }
 
