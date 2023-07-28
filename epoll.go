@@ -164,7 +164,7 @@ func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 		what := ep.EpollEvs[i].Events
 		es := *(**FdEvent)(unsafe.Pointer(&ep.EpollEvs[i].Fd))
 
-		if what&syscall.EPOLLERR != 0 || (what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0) {
+		if what&(syscall.EPOLLERR|syscall.EPOLLHUP) != 0 {
 			evRead = es.R
 			evWrite = es.W
 		} else {
