@@ -17,7 +17,7 @@ type SignalPoller struct {
 }
 
 // NewSignalPoller creates a new signal poller.
-func NewSignalPoller(cb func(Signal int)) *SignalPoller {
+func NewSignalPoller(cb func(signal int)) *SignalPoller {
 	sp := &SignalPoller{
 		Feedback: cb,
 		SignalCh: make(chan os.Signal, 1),

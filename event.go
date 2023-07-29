@@ -16,6 +16,8 @@ const (
 	EvTimeout = 1 << iota
 	// EvSignal is signal event.
 	EvSignal = 1 << iota
+	// EvClosed is closed event.
+	EvClosed = 1 << iota
 
 	// EvPersist is persistent event.
 	EvPersist = 0x10
