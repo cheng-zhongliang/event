@@ -15,10 +15,11 @@ The goal of `event` is to provide a `BASIC` tool for building high performance n
 
 ## Features
 
+- Support more events
+- Flexible timer and ticker
+- Edge-triggered
 - Simple API
 - Low memory usage
-- Support Read/Write/Timeout events
-- Efficient ticker
 
 ## Getting Started
 
@@ -35,21 +36,47 @@ Supports Following events:
 
 - `EvRead` fires when the fd is readable.
 - `EvWrite` fires when the fd is writable.
+- `EvClosed` fires when the connection has closed.
 - `EvTimeout` fires when the timeout expires.
-- `EvPersist` fires repeatedly until the event is deleted.
+- `EvSignal` fires when the os signal arrives.
 
-These events can be used in combination such as EvRead|EvTimeout. When the event fires, the callback function will be called. 
+When the event is triggered, the callback function will be called.
 
-### Ticker
+These events can be used in combination such as EvRead|EvTimeout. When the fd is readable or timeout expires, this event will be triggered. 
 
-This is a simple example of how to use the ticker:
+### Timer
+
+The timer is a one-shot event that will be triggered after the timeout expires.
 
 ```go
-ev := event.New(-1, event.EvTimeout|event.EvPersist, Tick, nil)
+ev := event.NewTimer(callback, arg)
 base.AddEvent(ev, 1*time.Second)
 ```
 
-The event will be triggered every second.
+### Ticker
+
+This ticker is a repeating event that will be triggered every time the timeout expires.
+
+```go
+ev := event.NewTicker(callback, arg)
+base.AddEvent(ev, 1*time.Second)
+```
+
+### Signal
+
+The signal event will be triggered when the os signal arrives.
+
+```go
+ev := event.NewSignal(os.Interrupt, callback, arg)
+```
+
+### Edge-triggered
+
+The event is level-triggered by default. If you want to use edge-triggered, you can set the `EvET` flag.
+
+```go
+ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
+```
 
 ### Usage
 
