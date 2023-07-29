@@ -55,7 +55,7 @@ base.AddEvent(ev, 1*time.Second)
 
 ### Ticker
 
-This ticker is a repeating event that will be triggered every time the timeout expires.
+The ticker is a repeating event that will be triggered every time the timeout expires.
 
 ```go
 ev := event.NewTicker(callback, arg)
