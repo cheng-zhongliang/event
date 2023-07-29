@@ -1,10 +1,13 @@
 package event
 
-import "syscall"
+import (
+	"os"
+	"syscall"
+)
 
 // NewSignal creates a new signal event.
-func NewSignal(signal syscall.Signal, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
-	return New(int(signal), EvSignal, callback, arg)
+func NewSignal(signal os.Signal, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+	return New(int(signal.(syscall.Signal)), EvSignal, callback, arg)
 }
 
 // NewTimer creates a new timer event.
