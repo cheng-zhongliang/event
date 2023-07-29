@@ -21,6 +21,8 @@ const (
 
 	// EvPersist is persistent event.
 	EvPersist = 0x10
+	// EvET is edge-triggered behavior.
+	EvET = 0x20
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
