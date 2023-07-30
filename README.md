@@ -15,7 +15,7 @@ The goal of `event` is to provide a `BASIC` tool for building high performance n
 
 ## Features
 
-- Support more events
+- Supports more events
 - Flexible timer and ticker
 - Edge-triggered
 - Simple API
