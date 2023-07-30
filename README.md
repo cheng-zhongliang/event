@@ -32,8 +32,6 @@ $ go get -u github.com/cheng-zhongliang/event
 
 ### Events
 
-Supports Following events:
-
 - `EvRead` fires when the fd is readable.
 - `EvWrite` fires when the fd is writable.
 - `EvClosed` fires when the connection has closed.
@@ -42,32 +40,46 @@ Supports Following events:
 
 When the event is triggered, the callback function will be called.
 
-These events can be used in combination such as EvRead|EvTimeout. When the fd is readable or timeout expires, this event will be triggered. 
+### Read/Write/Closed/Timeout
 
-### Timer
-
-The timer is a one-shot event that will be triggered after the timeout expires.
+These events can be used in combination.
 
 ```go
-ev := event.NewTimer(callback, arg)
+base := event.NewBase()
+ev := event.New(fd, event.EvRead|event.Timeout, callback, arg)
 base.AddEvent(ev, 1*time.Second)
 ```
 
-### Ticker
-
-The ticker is a repeating event that will be triggered every time the timeout expires.
-
-```go
-ev := event.NewTicker(callback, arg)
-base.AddEvent(ev, 1*time.Second)
-```
+When the fd is readable or timeout expires, this event will be triggered.
 
 ### Signal
 
 The signal event will be triggered when the os signal arrives.
 
 ```go
+base := event.NewBase()
 ev := event.NewSignal(os.Interrupt, callback, arg)
+base.AddEvent(ev, 0)
+```
+
+### Timer
+
+The timer is a one-shot event that will be triggered after the timeout expires.
+
+```go
+base := event.NewBase()
+ev := event.NewTimer(callback, arg)
+base.AddEvent(ev, 1*time.Second)
+```
+
+### Ticker
+
+This ticker is a repeating event that will be triggered every time the timeout expires.
+
+```go
+base := event.NewBase()
+ev := event.NewTicker(callback, arg)
+base.AddEvent(ev, 1*time.Second)
 ```
 
 ### Edge-triggered
