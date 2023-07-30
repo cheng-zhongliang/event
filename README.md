@@ -17,6 +17,7 @@ The goal of `event` is to provide a `BASIC` tool for building high performance n
 
 - Supports more events
 - Flexible timer and ticker
+- Supports event priority
 - Edge-triggered
 - Simple API
 - Low memory usage
@@ -80,6 +81,15 @@ The ticker is a repeating event that will be triggered every time the timeout ex
 base := event.NewBase()
 ev := event.NewTicker(callback, arg)
 base.AddEvent(ev, 1*time.Second)
+```
+
+### Priority
+
+When events are triggered together, high priority events will be dispatched first.
+
+```go
+ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
+ev.SetPriority(event.High)
 ```
 
 ### Edge-triggered
