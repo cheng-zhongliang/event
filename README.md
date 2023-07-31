@@ -38,6 +38,7 @@ $ go get -u github.com/cheng-zhongliang/event
 - `EvClosed` fires when the connection has closed.
 - `EvTimeout` fires when the timeout expires.
 - `EvSignal` fires when the os signal arrives.
+- `EvPersist` fires repeatedly. if not set, the event will be deleted after it is triggered.
 
 When the event is triggered, the callback function will be called.
 
@@ -47,7 +48,7 @@ These events can be used in combination.
 
 ```go
 base := event.NewBase()
-ev := event.New(fd, event.EvRead|event.Timeout, callback, arg)
+ev := event.New(fd, event.EvRead|event.Timeout|event.EvPersist, callback, arg)
 base.AddEvent(ev, 1*time.Second)
 ```
 
