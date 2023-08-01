@@ -1,45 +1,45 @@
 package event
 
-// EventHeap is the min heap of timeout events.
-type EventHeap []*Event
+// eventHeap is the min heap of timeout events.
+type eventHeap []*Event
 
-// NewEventHeap creates a new min event heap.
-func NewEventHeap() *EventHeap {
-	eh := &EventHeap{}
-	return eh.Init()
+// newEventHeap creates a new min event heap.
+func newEventHeap() *eventHeap {
+	eh := &eventHeap{}
+	return eh.init()
 }
 
-// Less returns true if the event at index i is less than the event at index j.
-func (eh EventHeap) Less(i, j int) bool {
-	return eh[i].Deadline < eh[j].Deadline
+// less returns true if the event at index i is less than the event at index j.
+func (eh eventHeap) less(i, j int) bool {
+	return eh[i].deadline < eh[j].deadline
 }
 
-// Swap swaps the events at index i and j.
-func (eh EventHeap) Swap(i, j int) {
+// swap swaps the events at index i and j.
+func (eh eventHeap) swap(i, j int) {
 	eh[i], eh[j] = eh[j], eh[i]
-	eh[i].Index = i
-	eh[j].Index = j
+	eh[i].index = i
+	eh[j].index = j
 }
 
-// Len returns the length of the event heap.
-func (eh EventHeap) Len() int {
+// len returns the length of the event heap.
+func (eh eventHeap) len() int {
 	return len(eh)
 }
 
-// Up moves the event at index j up the heap.
-func (eh EventHeap) Up(j int) {
+// up moves the event at index j up the heap.
+func (eh eventHeap) up(j int) {
 	for {
 		i := (j - 1) / 2
-		if i == j || !eh.Less(j, i) {
+		if i == j || !eh.less(j, i) {
 			break
 		}
-		eh.Swap(i, j)
+		eh.swap(i, j)
 		j = i
 	}
 }
 
-// Down moves the event at index i down the heap.
-func (eh EventHeap) Down(i0, n int) bool {
+// down moves the event at index i down the heap.
+func (eh eventHeap) down(i0, n int) bool {
 	i := i0
 	for {
 		j1 := 2*i + 1
@@ -47,43 +47,33 @@ func (eh EventHeap) Down(i0, n int) bool {
 			break
 		}
 		j := j1
-		if j2 := j1 + 1; j2 < n && eh.Less(j2, j1) {
+		if j2 := j1 + 1; j2 < n && eh.less(j2, j1) {
 			j = j2
 		}
-		if !eh.Less(j, i) {
+		if !eh.less(j, i) {
 			break
 		}
-		eh.Swap(i, j)
+		eh.swap(i, j)
 		i = j
 	}
 	return i > i0
 }
 
-// PushEvent pushes an event onto the heap.
-func (eh *EventHeap) PushEvent(ev *Event) int {
+// pushEvent pushes an event onto the heap.
+func (eh *eventHeap) pushEvent(ev *Event) int {
 	*eh = append(*eh, ev)
-	ev.Index = eh.Len() - 1
-	eh.Up(ev.Index)
-	return ev.Index
+	ev.index = eh.len() - 1
+	eh.up(ev.index)
+	return ev.index
 }
 
-// PopEvent pops an event off the heap.
-func (eh *EventHeap) PopEvent() *Event {
-	n := eh.Len() - 1
-	eh.Swap(0, n)
-	eh.Down(0, n)
-	ev := (*eh)[n]
-	*eh = (*eh)[:n]
-	return ev
-}
-
-// RemoveEvent removes an event at index from the heap.
-func (eh *EventHeap) RemoveEvent(index int) *Event {
-	n := eh.Len() - 1
+// removeEvent removes an event at index from the heap.
+func (eh *eventHeap) removeEvent(index int) *Event {
+	n := eh.len() - 1
 	if n != index {
-		eh.Swap(index, n)
-		if !eh.Down(index, n) {
-			eh.Up(index)
+		eh.swap(index, n)
+		if !eh.down(index, n) {
+			eh.up(index)
 		}
 	}
 	ev := (*eh)[n]
@@ -91,21 +81,21 @@ func (eh *EventHeap) RemoveEvent(index int) *Event {
 	return ev
 }
 
-// PeekEvent returns the event at the top of the heap.
-func (eh *EventHeap) PeekEvent() *Event {
+// peekEvent returns the event at the top of the heap.
+func (eh *eventHeap) peekEvent() *Event {
 	return (*eh)[0]
 }
 
-// Empty returns true if the heap is empty.
-func (eh *EventHeap) Empty() bool {
-	return eh.Len() == 0
+// empty returns true if the heap is empty.
+func (eh *eventHeap) empty() bool {
+	return eh.len() == 0
 }
 
-// Init initializes the heap.
-func (eh *EventHeap) Init() *EventHeap {
-	n := eh.Len()
+// init initializes the heap.
+func (eh *eventHeap) init() *eventHeap {
+	n := eh.len()
 	for i := n/2 - 1; i >= 0; i-- {
-		eh.Down(i, n)
+		eh.down(i, n)
 	}
 	return eh
 }

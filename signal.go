@@ -7,73 +7,73 @@ import (
 	"syscall"
 )
 
-// SignalPoller is the signal poller.
-type SignalPoller struct {
-	Feedback func(Signal int)
-	SignalCh chan os.Signal
-	Signals  []os.Signal
-	ExitCh   chan struct{}
-	Wg       *sync.WaitGroup
+// signalPoller is the signal poller.
+type signalPoller struct {
+	feedback func(signal int)
+	signalCh chan os.Signal
+	signals  []os.Signal
+	exitCh   chan struct{}
+	wg       *sync.WaitGroup
 }
 
-// NewSignalPoller creates a new signal poller.
-func NewSignalPoller(cb func(signal int)) *SignalPoller {
-	sp := &SignalPoller{
-		Feedback: cb,
-		SignalCh: make(chan os.Signal, 1),
-		Signals:  make([]os.Signal, 0),
-		ExitCh:   make(chan struct{}),
-		Wg:       &sync.WaitGroup{},
+// newSignalPoller creates a new signal poller.
+func newSignalPoller(cb func(signal int)) *signalPoller {
+	sp := &signalPoller{
+		feedback: cb,
+		signalCh: make(chan os.Signal, 1),
+		signals:  make([]os.Signal, 0),
+		exitCh:   make(chan struct{}),
+		wg:       &sync.WaitGroup{},
 	}
 
-	sp.Wg.Add(1)
-	go sp.PollSignal()
+	sp.wg.Add(1)
+	go sp.pollSignal()
 
 	return sp
 }
 
-// PollSignal polls the signal.
-func (sp *SignalPoller) PollSignal() {
-	defer sp.Wg.Done()
+// pollSignal polls the signal.
+func (sp *signalPoller) pollSignal() {
+	defer sp.wg.Done()
 	for {
 		select {
-		case sig := <-sp.SignalCh:
-			sp.Feedback(int(sig.(syscall.Signal)))
-		case <-sp.ExitCh:
+		case sig := <-sp.signalCh:
+			sp.feedback(int(sig.(syscall.Signal)))
+		case <-sp.exitCh:
 			return
 		}
 	}
 }
 
-// Close stops the signal poller.
-func (sp *SignalPoller) Close() {
-	close(sp.ExitCh)
-	sp.Wg.Wait()
+// close stops the signal poller.
+func (sp *signalPoller) close() {
+	close(sp.exitCh)
+	sp.wg.Wait()
 }
 
-// SubscribeSignal subscribes the signal.
+// subscribeSignal subscribes the signal.
 // Thread-safe.
-func (sp *SignalPoller) SubscribeSignal(sig int) {
-	for _, s := range sp.Signals {
+func (sp *signalPoller) subscribeSignal(sig int) {
+	for _, s := range sp.signals {
 		if s == syscall.Signal(sig) {
 			return
 		}
 	}
-	sp.Signals = append(sp.Signals, syscall.Signal(sig))
+	sp.signals = append(sp.signals, syscall.Signal(sig))
 
-	signal.Notify(sp.SignalCh, sp.Signals...)
+	signal.Notify(sp.signalCh, sp.signals...)
 }
 
-// UnsubscribeSignal unsubscribes the signal.
+// unsubscribeSignal unsubscribes the signal.
 // Thread-safe.
-func (sp *SignalPoller) UnsubscribeSignal(sig int) {
-	for i, s := range sp.Signals {
+func (sp *signalPoller) unsubscribeSignal(sig int) {
+	for i, s := range sp.signals {
 		if s == syscall.Signal(sig) {
-			sp.Signals = append(sp.Signals[:i], sp.Signals[i+1:]...)
+			sp.signals = append(sp.signals[:i], sp.signals[i+1:]...)
 			break
 		}
 	}
 
-	signal.Stop(sp.SignalCh)
-	signal.Notify(sp.SignalCh, sp.Signals...)
+	signal.Stop(sp.signalCh)
+	signal.Notify(sp.signalCh, sp.signals...)
 }

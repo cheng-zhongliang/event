@@ -5,38 +5,38 @@ import (
 	"unsafe"
 )
 
-// FdEvent is the event of a file descriptor.
-type FdEvent struct {
-	// R is the read event.
-	R *Event
-	// W is the write event.
-	W *Event
-	// C is the close event.
-	C *Event
-	// E is edge-triggered behavior.
-	E bool
+// fdEvent is the event of a file descriptor.
+type fdEvent struct {
+	// r is the read event.
+	r *Event
+	// w is the write event.
+	w *Event
+	// c is the close event.
+	c *Event
+	// e is edge-triggered behavior.
+	e bool
 }
 
-// Epoll is the epoll poller implementation.
-type Epoll struct {
-	// Fd is the file descriptor of epoll.
-	Fd int
+// epoll is the epoll poller implementation.
+type epoll struct {
+	// fd is the file descriptor of epoll.
+	fd int
 	// Evs is the fd to event map.
-	FdEvs map[int]*FdEvent
-	// EpollEvs is the epoll events.
-	EpollEvs []syscall.EpollEvent
-	// SignalEvs is the signal events.
-	SignalEvs map[int]*Event
-	// SignalFd0 is the read end of the signal pipe.
-	SignalFd0 int
-	// SignalFd1 is the write end of the signal pipe.
-	SignalFd1 int
-	// SignalPoller is the signal poller.
-	SignalPoller *SignalPoller
+	fdEvs map[int]*fdEvent
+	// epollEvs is the epoll events.
+	epollEvs []syscall.EpollEvent
+	// signalEvs is the signal events.
+	signalEvs map[int]*Event
+	// signalFd0 is the read end of the signal pipe.
+	signalFd0 int
+	// signalFd0 is the write end of the signal pipe.
+	signalFd1 int
+	// signalPoller is the signal poller.
+	signalPoller *signalPoller
 }
 
-// NewEpoll creates a new epoll poller.
-func NewEpoll() (*Epoll, error) {
+// newEpoll creates a new epoll poller.
+func newEpoll() (*epoll, error) {
 	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, err
@@ -52,154 +52,154 @@ func NewEpoll() (*Epoll, error) {
 		return nil, err
 	}
 
-	ep := &Epoll{
-		Fd:        fd,
-		FdEvs:     make(map[int]*FdEvent),
-		EpollEvs:  make([]syscall.EpollEvent, 0xFF),
-		SignalEvs: map[int]*Event{},
-		SignalFd0: signalFds[0],
-		SignalFd1: signalFds[1],
+	ep := &epoll{
+		fd:        fd,
+		fdEvs:     make(map[int]*fdEvent),
+		epollEvs:  make([]syscall.EpollEvent, 0xFF),
+		signalEvs: map[int]*Event{},
+		signalFd0: signalFds[0],
+		signalFd1: signalFds[1],
 	}
 
-	ep.SignalPoller = NewSignalPoller(ep.TriggerSignal)
+	ep.signalPoller = newSignalPoller(ep.triggerSignal)
 
 	return ep, nil
 }
 
-// Add adds an event to the epoll poller.
+// add adds an event to the epoll poller.
 // If the event is already added, it will be modified.
-func (ep *Epoll) Add(ev *Event) error {
-	if ev.Events&EvSignal != 0 {
-		ep.SignalEvs[ev.Fd] = ev
-		ep.SignalPoller.SubscribeSignal(ev.Fd)
+func (ep *epoll) add(ev *Event) error {
+	if ev.events&EvSignal != 0 {
+		ep.signalEvs[ev.fd] = ev
+		ep.signalPoller.subscribeSignal(ev.fd)
 		return nil
 	}
 
 	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_ADD
 
-	es, ok := ep.FdEvs[ev.Fd]
+	es, ok := ep.fdEvs[ev.fd]
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
 	} else {
-		es = &FdEvent{}
-		ep.FdEvs[ev.Fd] = es
+		es = &fdEvent{}
+		ep.fdEvs[ev.fd] = es
 	}
 
-	if ev.Events&EvRead != 0 {
-		es.R = ev
+	if ev.events&EvRead != 0 {
+		es.r = ev
 	}
-	if ev.Events&EvWrite != 0 {
-		es.W = ev
+	if ev.events&EvWrite != 0 {
+		es.w = ev
 	}
-	if ev.Events&EvClosed != 0 {
-		es.C = ev
+	if ev.events&EvClosed != 0 {
+		es.c = ev
 	}
-	if ev.Events&EvET != 0 {
-		es.E = true
+	if ev.events&EvET != 0 {
+		es.e = true
 	}
 
-	if es.R != nil {
+	if es.r != nil {
 		epEv.Events |= syscall.EPOLLIN
 	}
-	if es.W != nil {
+	if es.w != nil {
 		epEv.Events |= syscall.EPOLLOUT
 	}
-	if es.C != nil {
+	if es.c != nil {
 		epEv.Events |= syscall.EPOLLRDHUP
 	}
-	if es.E {
+	if es.e {
 		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
-	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
+	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
+	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-// Del deletes an event from the epoll poller.
+// del deletes an event from the epoll poller.
 // If the event is not added, it will return an error.
 // If the event is added twice, it will be modified.
-func (ep *Epoll) Del(ev *Event) error {
-	if ev.Events&EvSignal != 0 {
-		delete(ep.SignalEvs, ev.Fd)
-		ep.SignalPoller.UnsubscribeSignal(ev.Fd)
+func (ep *epoll) del(ev *Event) error {
+	if ev.events&EvSignal != 0 {
+		delete(ep.signalEvs, ev.fd)
+		ep.signalPoller.unsubscribeSignal(ev.fd)
 		return nil
 	}
 
-	es := ep.FdEvs[ev.Fd]
+	es := ep.fdEvs[ev.fd]
 
-	if ev.Events&EvRead != 0 {
-		es.R = nil
+	if ev.events&EvRead != 0 {
+		es.r = nil
 	}
-	if ev.Events&EvWrite != 0 {
-		es.W = nil
+	if ev.events&EvWrite != 0 {
+		es.w = nil
 	}
-	if ev.Events&EvClosed != 0 {
-		es.C = nil
+	if ev.events&EvClosed != 0 {
+		es.c = nil
 	}
 
 	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_DEL
 
-	if es.R != nil {
+	if es.r != nil {
 		epEv.Events |= syscall.EPOLLIN
 	}
-	if es.W != nil {
+	if es.w != nil {
 		epEv.Events |= syscall.EPOLLOUT
 	}
-	if es.C != nil {
+	if es.c != nil {
 		epEv.Events |= syscall.EPOLLRDHUP
 	}
-	if es.E {
+	if es.e {
 		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	if epEv.Events == 0 {
-		delete(ep.FdEvs, ev.Fd)
+		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
+	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	return syscall.EpollCtl(ep.Fd, op, ev.Fd, epEv)
+	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-// Polling polls the epoll poller.
+// polling polls the epoll poller.
 // It will call the callback function when an event is ready.
 // It will block until an event is ready.
-func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
-	n, err := syscall.EpollWait(ep.Fd, ep.EpollEvs, timeout)
+func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
+	n, err := syscall.EpollWait(ep.fd, ep.epollEvs, timeout)
 	if err != nil && !TemporaryErr(err) {
 		return err
 	}
 
 	for i := 0; i < n; i++ {
-		if ep.EpollEvs[i].Fd == int32(ep.SignalFd0) {
-			ep.OnSignal(cb)
+		if ep.epollEvs[i].Fd == int32(ep.signalFd0) {
+			ep.onSignal(cb)
 			continue
 		}
 
 		var evRead, evWrite, evClosed *Event
-		what := ep.EpollEvs[i].Events
-		es := *(**FdEvent)(unsafe.Pointer(&ep.EpollEvs[i].Fd))
+		what := ep.epollEvs[i].Events
+		es := *(**fdEvent)(unsafe.Pointer(&ep.epollEvs[i].Fd))
 
 		if what&syscall.EPOLLERR != 0 {
-			evRead = es.R
-			evWrite = es.W
+			evRead = es.r
+			evWrite = es.w
 		} else if what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0 {
-			evRead = es.R
-			evWrite = es.W
+			evRead = es.r
+			evWrite = es.w
 		} else {
 			if what&syscall.EPOLLIN != 0 {
-				evRead = es.R
+				evRead = es.r
 			}
 			if what&syscall.EPOLLOUT != 0 {
-				evWrite = es.W
+				evWrite = es.w
 			}
 			if what&syscall.EPOLLRDHUP != 0 {
-				evClosed = es.C
+				evClosed = es.c
 			}
 		}
 
@@ -217,25 +217,25 @@ func (ep *Epoll) Polling(cb func(ev *Event, res uint32), timeout int) error {
 	return nil
 }
 
-// Close closes the epoll poller.
-func (ep *Epoll) Close() error {
-	ep.SignalPoller.Close()
-	syscall.Close(ep.SignalFd0)
-	syscall.Close(ep.SignalFd1)
-	return syscall.Close(ep.Fd)
+// close closes the epoll poller.
+func (ep *epoll) close() error {
+	ep.signalPoller.close()
+	syscall.Close(ep.signalFd0)
+	syscall.Close(ep.signalFd0)
+	return syscall.Close(ep.fd)
 }
 
 // Trigger triggers a signal.
-func (ep *Epoll) TriggerSignal(signal int) {
-	syscall.Write(ep.SignalFd1, []byte{byte(signal)})
+func (ep *epoll) triggerSignal(signal int) {
+	syscall.Write(ep.signalFd1, []byte{byte(signal)})
 }
 
-// OnSignal is the callback function when a signal is received.
-func (ep *Epoll) OnSignal(cb func(ev *Event, res uint32)) {
+// onSignal is the callback function when a signal is received.
+func (ep *epoll) onSignal(cb func(ev *Event, res uint32)) {
 	buf := make([]byte, 1)
-	syscall.Read(ep.SignalFd0, buf)
+	syscall.Read(ep.signalFd0, buf)
 
-	ev, ok := ep.SignalEvs[int(buf[0])]
+	ev, ok := ep.signalEvs[int(buf[0])]
 	if !ok {
 		return
 	}
