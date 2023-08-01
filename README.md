@@ -38,7 +38,7 @@ $ go get -u github.com/cheng-zhongliang/event
 - `EvClosed` fires when the connection has closed.
 - `EvTimeout` fires when the timeout expires.
 - `EvSignal` fires when the os signal arrives.
-- `EvPersist` __fires repeatedly. if not set, the event will be deleted after it is triggered.__
+- `EvPersist` __if not set, the event will be deleted after it is triggered.__
 
 When the event is triggered, the callback function will be called.
 
