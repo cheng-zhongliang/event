@@ -109,7 +109,7 @@ func (ep *Epoll) Add(ev *Event) error {
 		epEv.Events |= syscall.EPOLLRDHUP
 	}
 	if es.E {
-		epEv.Events |= syscall.EPOLLET
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	*(**FdEvent)(unsafe.Pointer(&epEv.Fd)) = es
@@ -152,7 +152,7 @@ func (ep *Epoll) Del(ev *Event) error {
 		epEv.Events |= syscall.EPOLLRDHUP
 	}
 	if es.E {
-		epEv.Events |= syscall.EPOLLET
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	if epEv.Events == 0 {

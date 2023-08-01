@@ -180,6 +180,7 @@ func (bs *EventBase) WaitTime() int {
 		if ev.Deadline > now {
 			return int(ev.Deadline - now)
 		}
+		return 0
 	}
 
 	return -1
