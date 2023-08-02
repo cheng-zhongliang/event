@@ -203,7 +203,7 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 func (ep *epoll) close() error {
 	ep.signalPoller.close()
 	syscall.Close(ep.signalFd0)
-	syscall.Close(ep.signalFd0)
+	syscall.Close(ep.signalFd1)
 	return syscall.Close(ep.fd)
 }
 
