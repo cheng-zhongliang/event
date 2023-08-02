@@ -72,7 +72,6 @@ type Event struct {
 	priority EventPriority
 }
 
-// New creates a new event.
 func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	return &Event{
 		fd:       fd,
@@ -83,12 +82,10 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 	}
 }
 
-// SetPriority sets the priority of the event.
 func (ev *Event) SetPriority(priority EventPriority) {
 	ev.priority = priority
 }
 
-// Assign assigns the event.
 func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority EventPriority) {
 	ev.fd = fd
 	ev.events = events
