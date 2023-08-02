@@ -3,6 +3,7 @@
     src="logo.png" 
     width="350" height="175" border="0" alt="event">
 <br><br>
+<a title="Build Status" target="_blank" href="https://github.com/cheng-zhongliang/event/actions?query=workflow%3ATests"><img src="https://img.shields.io/github/actions/workflow/status/cheng-zhongliang/event/go.yml?style=flat-square&logo=github-actions" /></a>
 <a href="https://godoc.org/github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-reference-blue" alt="GoDoc"></a>
 <a href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
 </p>
