@@ -17,25 +17,16 @@ type fdEvent struct {
 	e bool
 }
 
-// epoll is the epoll poller implementation.
 type epoll struct {
-	// fd is the file descriptor of epoll.
-	fd int
-	// Evs is the fd to event map.
-	fdEvs map[int]*fdEvent
-	// epollEvs is the epoll events.
-	epollEvs []syscall.EpollEvent
-	// signalEvs is the signal events.
-	signalEvs map[int]*Event
-	// signalFd0 is the read end of the signal pipe.
-	signalFd0 int
-	// signalFd0 is the write end of the signal pipe.
-	signalFd1 int
-	// signalPoller is the signal poller.
+	fd           int
+	fdEvs        map[int]*fdEvent
+	epollEvs     []syscall.EpollEvent
+	signalEvs    map[int]*Event
+	signalFd0    int
+	signalFd1    int
 	signalPoller *signalPoller
 }
 
-// newEpoll creates a new epoll poller.
 func newEpoll() (*epoll, error) {
 	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
@@ -66,8 +57,6 @@ func newEpoll() (*epoll, error) {
 	return ep, nil
 }
 
-// add adds an event to the epoll poller.
-// If the event is already added, it will be modified.
 func (ep *epoll) add(ev *Event) error {
 	if ev.events&EvSignal != 0 {
 		ep.signalEvs[ev.fd] = ev
@@ -117,9 +106,6 @@ func (ep *epoll) add(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-// del deletes an event from the epoll poller.
-// If the event is not added, it will return an error.
-// If the event is added twice, it will be modified.
 func (ep *epoll) del(ev *Event) error {
 	if ev.events&EvSignal != 0 {
 		delete(ep.signalEvs, ev.fd)
@@ -166,12 +152,9 @@ func (ep *epoll) del(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-// polling polls the epoll poller.
-// It will call the callback function when an event is ready.
-// It will block until an event is ready.
 func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 	n, err := syscall.EpollWait(ep.fd, ep.epollEvs, timeout)
-	if err != nil && !TemporaryErr(err) {
+	if err != nil && !temporaryErr(err) {
 		return err
 	}
 
@@ -217,7 +200,6 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 	return nil
 }
 
-// close closes the epoll poller.
 func (ep *epoll) close() error {
 	ep.signalPoller.close()
 	syscall.Close(ep.signalFd0)
@@ -225,12 +207,10 @@ func (ep *epoll) close() error {
 	return syscall.Close(ep.fd)
 }
 
-// Trigger triggers a signal.
 func (ep *epoll) triggerSignal(signal int) {
 	syscall.Write(ep.signalFd1, []byte{byte(signal)})
 }
 
-// onSignal is the callback function when a signal is received.
 func (ep *epoll) onSignal(cb func(ev *Event, res uint32)) {
 	buf := make([]byte, 1)
 	syscall.Read(ep.signalFd0, buf)

@@ -7,7 +7,6 @@ import (
 	"syscall"
 )
 
-// signalPoller is the signal poller.
 type signalPoller struct {
 	feedback func(signal int)
 	signalCh chan os.Signal
@@ -16,7 +15,6 @@ type signalPoller struct {
 	wg       *sync.WaitGroup
 }
 
-// newSignalPoller creates a new signal poller.
 func newSignalPoller(cb func(signal int)) *signalPoller {
 	sp := &signalPoller{
 		feedback: cb,
@@ -32,7 +30,6 @@ func newSignalPoller(cb func(signal int)) *signalPoller {
 	return sp
 }
 
-// pollSignal polls the signal.
 func (sp *signalPoller) pollSignal() {
 	defer sp.wg.Done()
 	for {
@@ -45,14 +42,11 @@ func (sp *signalPoller) pollSignal() {
 	}
 }
 
-// close stops the signal poller.
 func (sp *signalPoller) close() {
 	close(sp.exitCh)
 	sp.wg.Wait()
 }
 
-// subscribeSignal subscribes the signal.
-// Thread-safe.
 func (sp *signalPoller) subscribeSignal(sig int) {
 	for _, s := range sp.signals {
 		if s == syscall.Signal(sig) {
@@ -64,8 +58,6 @@ func (sp *signalPoller) subscribeSignal(sig int) {
 	signal.Notify(sp.signalCh, sp.signals...)
 }
 
-// unsubscribeSignal unsubscribes the signal.
-// Thread-safe.
 func (sp *signalPoller) unsubscribeSignal(sig int) {
 	for i, s := range sp.signals {
 		if s == syscall.Signal(sig) {

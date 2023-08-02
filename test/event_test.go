@@ -1,7 +1,6 @@
 package event
 
 import (
-	"os"
 	"syscall"
 	"testing"
 	"time"
@@ -240,44 +239,6 @@ func TestTicker(t *testing.T) {
 	}
 
 	if n != 3 {
-		t.FailNow()
-	}
-}
-
-func TestSignal(t *testing.T) {
-	base, err := NewBase()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	base.TriggerSignal(os.Interrupt)
-
-	n := 0
-	ev := NewSignal(os.Interrupt, func(fd int, events uint32, arg interface{}) {
-		if events != EvSignal {
-			t.Fatal("events not equal")
-		}
-		if arg != "hello" {
-			t.Fatal("arg not equal")
-		}
-		n++
-		err = base.Exit()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}, "hello")
-
-	err = base.AddEvent(ev, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
-		t.Fatal(err)
-	}
-
-	if n != 1 {
 		t.FailNow()
 	}
 }

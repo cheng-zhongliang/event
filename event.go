@@ -1,8 +1,6 @@
 package event
 
 import (
-	"os"
-	"syscall"
 	"time"
 )
 
@@ -21,16 +19,16 @@ const (
 	// EvClosed is closed event.
 	EvClosed = 1 << iota
 
-	// EvPersist is persistent event.
+	// EvPersist is persistent option. If not set, the event will be deleted after it is triggered.
 	EvPersist = 0x10
-	// EvET is edge-triggered behavior.
+	// EvET is edge-triggered behavior option.
 	EvET = 0x20
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
 	// EvListActive is the flag to indicate the event is in the active event list.
 	EvListActive = 0x02
-	// EvListTimeout is the flag to indicate the event is in the timeout event list.
+	// EvListTimeout is the flag to indicate the event is in the timeout event heap.
 	EvListTimeout = 0x04
 
 	// High is the high priority.
@@ -52,7 +50,7 @@ type Event struct {
 
 	// fd is the file descriptor to watch.
 	fd int
-	// events is the events to watch. It can be EvRead or EvWrite.
+	// events is the events to watch. It can be EvRead, EvWrite, etc.
 	events uint32
 
 	// cb is the callback function when the event is triggered.
@@ -67,7 +65,7 @@ type Event struct {
 
 	// timeout is the timeout in milliseconds.
 	timeout time.Duration
-	// deadline is the deadline in milliseconds.
+	// deadline is the deadline for the event.
 	deadline int64
 
 	// priority is the priority of the event.
@@ -178,10 +176,6 @@ func (bs *EventBase) Dispatch() error {
 	}
 }
 
-func (bs *EventBase) TriggerSignal(signal os.Signal) {
-	bs.poller.triggerSignal(int(signal.(syscall.Signal)))
-}
-
 // Exit closes the event base.
 func (bs *EventBase) Exit() error {
 	return bs.poller.close()
@@ -197,7 +191,6 @@ func (bs *EventBase) waitTime() int {
 		}
 		return 0
 	}
-
 	return -1
 }
 
@@ -232,7 +225,7 @@ func (bs *EventBase) handleActiveEvents() {
 	for i := range bs.activeEvLists {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
-			ev := e.Value
+			ev := e.value
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, EvListActive)
 			} else {
@@ -250,7 +243,6 @@ func (bs *EventBase) handleActiveEvents() {
 }
 
 // eventQueueInsert inserts an event into the event list.
-// Double insertion is possible for active events.
 func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
 	if ev.flags&which != 0 && ev.flags&EvListActive != 0 {
 		return
