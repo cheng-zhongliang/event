@@ -109,7 +109,6 @@ type EventBase struct {
 	evHeap *eventHeap
 }
 
-// NewBase creates a new event base.
 func NewBase() (*EventBase, error) {
 	poller, err := newEpoll()
 	if err != nil {
@@ -124,7 +123,6 @@ func NewBase() (*EventBase, error) {
 	}, nil
 }
 
-// AddEvent adds an event to the event base.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 	if timeout > 0 && ev.flags&EvListTimeout == 0 {
 		ev.timeout = timeout
@@ -142,7 +140,6 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 	return nil
 }
 
-// DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
 	if ev.flags&EvListTimeout != 0 {
 		bs.eventQueueRemove(ev, EvListTimeout)
@@ -162,7 +159,6 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 	return nil
 }
 
-// Dispatch waits for events and dispatches them.
 func (bs *EventBase) Dispatch() error {
 	for {
 		err := bs.poller.polling(bs.onActive, bs.waitTime())
@@ -176,12 +172,10 @@ func (bs *EventBase) Dispatch() error {
 	}
 }
 
-// Exit closes the event base.
 func (bs *EventBase) Exit() error {
 	return bs.poller.close()
 }
 
-// waitTime returns the time to wait for events.
 func (bs *EventBase) waitTime() int {
 	if !bs.evHeap.empty() {
 		now := time.Now().UnixMilli()
@@ -194,7 +188,6 @@ func (bs *EventBase) waitTime() int {
 	return -1
 }
 
-// onTimeout handles timeout events.
 func (bs *EventBase) onTimeout() {
 	now := time.Now().UnixMilli()
 	for !bs.evHeap.empty() {
@@ -209,7 +202,6 @@ func (bs *EventBase) onTimeout() {
 	}
 }
 
-// onActive adds an event to the active event list.
 func (bs *EventBase) onActive(ev *Event, res uint32) {
 	if ev.flags&EvListActive != 0 {
 		ev.res |= res
@@ -220,7 +212,6 @@ func (bs *EventBase) onActive(ev *Event, res uint32) {
 	bs.eventQueueInsert(ev, EvListActive)
 }
 
-// handleActiveEvents handles active events.
 func (bs *EventBase) handleActiveEvents() {
 	for i := range bs.activeEvLists {
 		for e := bs.activeEvLists[i].front(); e != nil; {
@@ -242,7 +233,6 @@ func (bs *EventBase) handleActiveEvents() {
 	}
 }
 
-// eventQueueInsert inserts an event into the event list.
 func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
 	if ev.flags&which != 0 && ev.flags&EvListActive != 0 {
 		return
@@ -259,7 +249,6 @@ func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
 	}
 }
 
-// eventQueueRemove removes an event from the event list.
 func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 	if ev.flags&which == 0 {
 		return
