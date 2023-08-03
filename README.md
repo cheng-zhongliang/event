@@ -4,8 +4,12 @@
     width="350" height="175" border="0" alt="event">
 <br><br>
 <a title="Build Status" target="_blank" href="https://github.com/cheng-zhongliang/event/actions?query=workflow"><img src="https://img.shields.io/github/actions/workflow/status/cheng-zhongliang/event/go.yml?logo=github-actions" /></a>
-<a href="https://godoc.org/github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-reference-blue" alt="GoDoc"></a>
+<a title="Doc for event" target="_blank" href="https://pkg.go.dev/github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go.dev-doc-007d9c?style=flat-square&logo=read-the-docs" /></a>
 <a href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
+<a title="Release" target="_blank" href="https://github.com/cheng-zhongliang/event/releases"><img src="https://img.shields.io/github/v/release/cheng-zhongliang/event.svg?color=161823&logo=smartthings" /></a>
+<a title="Tag" target="_blank" href="https://github.com/cheng-zhongliang/event/tags"><img src="https://img.shields.io/github/v/tag/cheng-zhongliang/event?color=%23ff8936&logo=fitbit" /></a>
+<a title="Require Go Version" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-%3E%3D1.20-30dff3?logo=go" /></a>
+<a title="Supported Platforms" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/platform-Linux-549688?logo=launchpad" /></a>
 </p>
 
 `event` is a network I/O event notification library for Go. It uses [epoll](https://en.wikipedia.org/wiki/Epoll) to poll I/O events that is fast and low memory usage. It works in a similar manner as [libevent](https://github.com/libevent/libevent).
