@@ -26,8 +26,6 @@ func main() {
 	if err := base.Dispatch(); err != nil && err != event.ErrBadFileDescriptor {
 		panic(err)
 	}
-
-	syscall.Close(fd)
 }
 
 func Socket() int {
