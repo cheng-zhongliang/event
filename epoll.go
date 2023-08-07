@@ -137,14 +137,15 @@ func (ep *epoll) del(ev *Event) error {
 	if es.c != nil {
 		epEv.Events |= syscall.EPOLLRDHUP
 	}
-	if es.e {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
-	}
 
 	if epEv.Events == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
+	}
+
+	if es.e {
+		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
