@@ -4,6 +4,7 @@
     width="350" height="175" border="0" alt="event">
 <br><br>
 <a title="Build Status" target="_blank" href="https://github.com/cheng-zhongliang/event/actions?query=workflow"><img src="https://img.shields.io/github/actions/workflow/status/cheng-zhongliang/event/go.yml?logo=github-actions" /></a>
+<a title="Codecov" target="_blank" href="https://codecov.io/gh/cheng-zhongliang/event"><img src="https://img.shields.io/codecov/c/github/cheng-zhongliang/event?logo=codecov" /></a>
 <a title="Go Report Card" target="_blank" href="https://goreportcard.com/report/github.com/cheng-zhongliang/event"><img src="https://goreportcard.com/badge/github.com/cheng-zhongliang/event" /></a>
 <a title="Doc for event" target="_blank" href="https://pkg.go.dev/github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go.dev-doc-007d9c?logo=read-the-docs" /></a>
 <a href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
