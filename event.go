@@ -225,7 +225,7 @@ func (bs *EventBase) handleActiveEvents() {
 				bs.AddEvent(ev, ev.timeout)
 			}
 
-			ev.cb(ev.fd, ev.res, ev.arg)
+			ev.cb(ev.fd, ev.res&ev.events, ev.arg)
 		}
 	}
 }

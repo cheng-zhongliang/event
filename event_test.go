@@ -350,6 +350,9 @@ func TestEdgeTrigger(t *testing.T) {
 			}
 			return
 		}
+		if events&EvET == 0 {
+			t.FailNow()
+		}
 		n++
 	}, "hello")
 

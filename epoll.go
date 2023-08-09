@@ -188,13 +188,13 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 		}
 
 		if evRead != nil {
-			cb(evRead, EvRead)
+			cb(evRead, EvRead|EvET)
 		}
 		if evWrite != nil {
-			cb(evWrite, EvWrite)
+			cb(evWrite, EvWrite|EvET)
 		}
 		if evClosed != nil {
-			cb(evClosed, EvClosed)
+			cb(evClosed, EvClosed|EvET)
 		}
 	}
 
