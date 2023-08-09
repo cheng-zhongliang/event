@@ -4,8 +4,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-
-	. "github.com/cheng-zhongliang/event"
 )
 
 func TestNewBase(t *testing.T) {
