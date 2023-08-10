@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// EventPriority is the priority of the event.
-type EventPriority int
+// eventPriority is the priority of the event.
+type eventPriority int
 
 const (
 	// EvRead is readable event.
@@ -32,11 +32,11 @@ const (
 	EvListTimeout = 0x04
 
 	// High is the high priority.
-	High EventPriority = 0b00
+	High eventPriority = 0b00
 	// Middle is the middle priority.
-	Middle EventPriority = 0b01
+	Middle eventPriority = 0b01
 	// Low is the low priority.
-	Low EventPriority = 0b10
+	Low eventPriority = 0b10
 )
 
 // Event is the event to watch.
@@ -69,7 +69,7 @@ type Event struct {
 	deadline int64
 
 	// priority is the priority of the event.
-	priority EventPriority
+	priority eventPriority
 }
 
 func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
@@ -82,11 +82,11 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 	}
 }
 
-func (ev *Event) SetPriority(priority EventPriority) {
+func (ev *Event) SetPriority(priority eventPriority) {
 	ev.priority = priority
 }
 
-func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority EventPriority) {
+func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
 	ev.fd = fd
 	ev.events = events
 	ev.cb = callback
