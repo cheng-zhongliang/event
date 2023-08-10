@@ -13,6 +13,7 @@ func TestNewBase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	base.Exit()
 }
 
