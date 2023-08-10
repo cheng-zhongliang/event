@@ -18,13 +18,13 @@ type fdEvent struct {
 }
 
 type epoll struct {
-	fd           int
-	fdEvs        map[int]*fdEvent
-	epollEvs     []syscall.EpollEvent
-	signalEvs    map[int]*Event
-	signalFd0    int
-	signalFd1    int
-	signalPoller *signalPoller
+	fd        int
+	fdEvs     map[int]*fdEvent
+	epollEvs  []syscall.EpollEvent
+	signalEvs map[int]*Event
+	signalFd0 int
+	signalFd1 int
+	signaler  *signaler
 }
 
 func newEpoll() (*epoll, error) {
@@ -52,7 +52,7 @@ func newEpoll() (*epoll, error) {
 		signalFd1: signalFds[1],
 	}
 
-	ep.signalPoller = newSignalPoller(ep.triggerSignal)
+	ep.signaler = newSignaler(ep.triggerSignal)
 
 	return ep, nil
 }
@@ -60,7 +60,7 @@ func newEpoll() (*epoll, error) {
 func (ep *epoll) add(ev *Event) error {
 	if ev.events&EvSignal != 0 {
 		ep.signalEvs[ev.fd] = ev
-		ep.signalPoller.subscribeSignal(ev.fd)
+		ep.signaler.subscribe(ev.fd)
 		return nil
 	}
 
@@ -109,7 +109,7 @@ func (ep *epoll) add(ev *Event) error {
 func (ep *epoll) del(ev *Event) error {
 	if ev.events&EvSignal != 0 {
 		delete(ep.signalEvs, ev.fd)
-		ep.signalPoller.unsubscribeSignal(ev.fd)
+		ep.signaler.unsubscribe(ev.fd)
 		return nil
 	}
 
@@ -201,11 +201,11 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 	return nil
 }
 
-func (ep *epoll) close() error {
-	ep.signalPoller.close()
+func (ep *epoll) close() {
+	ep.signaler.close()
 	syscall.Close(ep.signalFd0)
 	syscall.Close(ep.signalFd1)
-	return syscall.Close(ep.fd)
+	syscall.Close(ep.fd)
 }
 
 func (ep *epoll) triggerSignal(signal int) {

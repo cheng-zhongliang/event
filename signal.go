@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-type signalPoller struct {
+type signaler struct {
 	feedback func(signal int)
 	signalCh chan os.Signal
 	signals  []os.Signal
@@ -15,8 +15,8 @@ type signalPoller struct {
 	wg       *sync.WaitGroup
 }
 
-func newSignalPoller(cb func(signal int)) *signalPoller {
-	sp := &signalPoller{
+func newSignaler(cb func(signal int)) *signaler {
+	sp := &signaler{
 		feedback: cb,
 		signalCh: make(chan os.Signal, 1),
 		signals:  make([]os.Signal, 0),
@@ -25,12 +25,12 @@ func newSignalPoller(cb func(signal int)) *signalPoller {
 	}
 
 	sp.wg.Add(1)
-	go sp.pollSignal()
+	go sp.poll()
 
 	return sp
 }
 
-func (sp *signalPoller) pollSignal() {
+func (sp *signaler) poll() {
 	defer sp.wg.Done()
 	for {
 		select {
@@ -42,12 +42,12 @@ func (sp *signalPoller) pollSignal() {
 	}
 }
 
-func (sp *signalPoller) close() {
+func (sp *signaler) close() {
 	close(sp.exitCh)
 	sp.wg.Wait()
 }
 
-func (sp *signalPoller) subscribeSignal(sig int) {
+func (sp *signaler) subscribe(sig int) {
 	for _, s := range sp.signals {
 		if s == syscall.Signal(sig) {
 			return
@@ -58,7 +58,7 @@ func (sp *signalPoller) subscribeSignal(sig int) {
 	signal.Notify(sp.signalCh, sp.signals...)
 }
 
-func (sp *signalPoller) unsubscribeSignal(sig int) {
+func (sp *signaler) unsubscribe(sig int) {
 	for i, s := range sp.signals {
 		if s == syscall.Signal(sig) {
 			sp.signals = append(sp.signals[:i], sp.signals[i+1:]...)

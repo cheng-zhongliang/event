@@ -13,11 +13,7 @@ func TestNewBase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	err = base.Exit()
-	if err != nil {
-		t.Fatal(err)
-	}
+	base.Exit()
 }
 
 func TestAddEvent(t *testing.T) {
@@ -38,10 +34,7 @@ func TestAddEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = base.Exit()
-	if err != nil {
-		t.Fatal(err)
-	}
+	base.Exit()
 
 	syscall.Close(int(r0))
 }
@@ -69,10 +62,7 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = base.Exit()
-	if err != nil {
-		t.Fatal(err)
-	}
+	base.Exit()
 
 	syscall.Close(int(r0))
 }
@@ -99,10 +89,7 @@ func TestEventDispatch(t *testing.T) {
 			t.Fatal("arg not equal")
 		}
 		syscall.Read(int(r0), make([]byte, 8))
-		err = base.Exit()
-		if err != nil {
-			t.Fatal(err)
-		}
+		base.Exit()
 	}, "hello")
 
 	err = base.AddEvent(ev, 0)
@@ -145,10 +132,7 @@ func TestEventTimeout(t *testing.T) {
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		err = base.Exit()
-		if err != nil {
-			t.Fatal(err)
-		}
+		base.Exit()
 		n++
 	}, "hello")
 
@@ -183,10 +167,7 @@ func TestTimer(t *testing.T) {
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		err = base.Exit()
-		if err != nil {
-			t.Fatal(err)
-		}
+		base.Exit()
 		n++
 	}, "hello")
 
@@ -221,10 +202,7 @@ func TestTicker(t *testing.T) {
 		}
 		n++
 		if n == 3 {
-			err = base.Exit()
-			if err != nil {
-				t.Fatal(err)
-			}
+			base.Exit()
 		}
 	}, "hello")
 
@@ -282,10 +260,7 @@ func TestPriority(t *testing.T) {
 		}
 		syscall.Read(int(r0), make([]byte, 8))
 		triggerTime0 = int(time.Now().UnixMicro())
-		err = base.Exit()
-		if err != nil {
-			t.Fatal(err)
-		}
+		base.Exit()
 	}, "hello")
 
 	triggerTime1 := 0
@@ -346,10 +321,7 @@ func TestEdgeTrigger(t *testing.T) {
 	n := 0
 	ev := New(int(r0), EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
 		if events&EvTimeout != 0 {
-			err = base.Exit()
-			if err != nil {
-				t.Fatal(err)
-			}
+			base.Exit()
 			return
 		}
 		if events&EvET == 0 {
