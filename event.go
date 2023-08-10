@@ -72,6 +72,7 @@ type Event struct {
 	priority eventPriority
 }
 
+// New creates a new event.
 func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	return &Event{
 		fd:       fd,
@@ -82,10 +83,12 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 	}
 }
 
+// SetPriority sets the priority of the event.
 func (ev *Event) SetPriority(priority eventPriority) {
 	ev.priority = priority
 }
 
+// Assign assigns the event.
 func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
 	ev.fd = fd
 	ev.events = events
@@ -106,6 +109,7 @@ type EventBase struct {
 	evHeap *eventHeap
 }
 
+// NewBase creates a new event base.
 func NewBase() (*EventBase, error) {
 	poller, err := newEpoll()
 	if err != nil {
@@ -120,6 +124,9 @@ func NewBase() (*EventBase, error) {
 	}, nil
 }
 
+// AddEvent adds an event to the event base.
+// Timeout is the timeout of the event. Default is 0, which means no timeout.
+// But if EvTimeout is set in the event, the timeout is required.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 	if timeout > 0 && ev.flags&EvListTimeout == 0 {
 		ev.timeout = timeout
@@ -137,6 +144,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 	return nil
 }
 
+// DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
 	if ev.flags&EvListTimeout != 0 {
 		bs.eventQueueRemove(ev, EvListTimeout)
@@ -156,6 +164,8 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 	return nil
 }
 
+// Dispatch dispatches events.
+// It will block until events trigger.
 func (bs *EventBase) Dispatch() error {
 	for {
 		err := bs.poller.polling(bs.onActive, bs.waitTime())
@@ -169,6 +179,7 @@ func (bs *EventBase) Dispatch() error {
 	}
 }
 
+// Exit exit event loop.
 func (bs *EventBase) Exit() {
 	bs.poller.close()
 }
