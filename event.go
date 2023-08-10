@@ -20,9 +20,9 @@ const (
 	EvClosed = 1 << iota
 
 	// EvPersist is persistent option. If not set, the event will be deleted after it is triggered.
-	EvPersist = 0x10
+	EvPersist = 020
 	// EvET is edge-triggered behavior option.
-	EvET = 0x20
+	EvET = 040
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
