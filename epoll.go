@@ -13,8 +13,6 @@ type fdEvent struct {
 	w *Event
 	// c is the close event.
 	c *Event
-	// e is edge-triggered behavior.
-	e bool
 	// events is epoll events.
 	events uint32
 }
@@ -88,7 +86,6 @@ func (ep *epoll) add(ev *Event) error {
 		es.events |= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
-		es.e = true
 		es.events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
@@ -120,16 +117,15 @@ func (ep *epoll) del(ev *Event) error {
 		es.c = nil
 		es.events &^= syscall.EPOLLRDHUP
 	}
+	if ev.events&EvET != 0 {
+		es.events &^= syscall.EPOLLET & 0xFFFFFFFF
+	}
 
 	op := syscall.EPOLL_CTL_DEL
 	if es.events == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
-	}
-
-	if es.e {
-		es.events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	epEv := &syscall.EpollEvent{Events: es.events}
