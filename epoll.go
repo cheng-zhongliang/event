@@ -15,6 +15,8 @@ type fdEvent struct {
 	c *Event
 	// e is edge-triggered behavior.
 	e bool
+	// events is epoll events.
+	events uint32
 }
 
 type epoll struct {
@@ -64,9 +66,7 @@ func (ep *epoll) add(ev *Event) error {
 		return nil
 	}
 
-	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_ADD
-
 	es, ok := ep.fdEvs[ev.fd]
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
@@ -77,29 +77,22 @@ func (ep *epoll) add(ev *Event) error {
 
 	if ev.events&EvRead != 0 {
 		es.r = ev
+		es.events |= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = ev
+		es.events |= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = ev
+		es.events |= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
 		es.e = true
+		es.events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
-	if es.r != nil {
-		epEv.Events |= syscall.EPOLLIN
-	}
-	if es.w != nil {
-		epEv.Events |= syscall.EPOLLOUT
-	}
-	if es.c != nil {
-		epEv.Events |= syscall.EPOLLRDHUP
-	}
-	if es.e {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
-	}
+	epEv := &syscall.EpollEvent{Events: es.events}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -117,36 +110,29 @@ func (ep *epoll) del(ev *Event) error {
 
 	if ev.events&EvRead != 0 {
 		es.r = nil
+		es.events &^= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = nil
+		es.events &^= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = nil
+		es.events &^= syscall.EPOLLRDHUP
 	}
 
-	epEv := &syscall.EpollEvent{}
 	op := syscall.EPOLL_CTL_DEL
-
-	if es.r != nil {
-		epEv.Events |= syscall.EPOLLIN
-	}
-	if es.w != nil {
-		epEv.Events |= syscall.EPOLLOUT
-	}
-	if es.c != nil {
-		epEv.Events |= syscall.EPOLLRDHUP
-	}
-
-	if epEv.Events == 0 {
+	if es.events == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
 	if es.e {
-		epEv.Events |= syscall.EPOLLET & 0xFFFFFFFF
+		es.events |= syscall.EPOLLET & 0xFFFFFFFF
 	}
+
+	epEv := &syscall.EpollEvent{Events: es.events}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
