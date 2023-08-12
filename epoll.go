@@ -69,12 +69,13 @@ func (ep *epoll) add(ev *Event) error {
 	es, ok := ep.fdEvs[ev.fd]
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
-		if es.events&ev.events != 0 {
-			return ErrEventExists
-		}
 	} else {
 		es = &fdEvent{}
 		ep.fdEvs[ev.fd] = es
+	}
+
+	if es.events&ev.events != 0 {
+		return ErrEventExists
 	}
 
 	es.events |= ev.events
