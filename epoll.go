@@ -13,8 +13,10 @@ type fdEvent struct {
 	w *Event
 	// c is the close event.
 	c *Event
-	// events is epoll events.
+	// events is events.
 	events uint32
+	// epEvents is epoll events.
+	epEvents uint32
 }
 
 type epoll struct {
@@ -67,37 +69,33 @@ func (ep *epoll) add(ev *Event) error {
 	es, ok := ep.fdEvs[ev.fd]
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
+		if es.events&ev.events != 0 {
+			return ErrEventExists
+		}
 	} else {
 		es = &fdEvent{}
 		ep.fdEvs[ev.fd] = es
 	}
 
+	es.events |= ev.events
+
 	if ev.events&EvRead != 0 {
-		if es.r != nil {
-			return ErrEventExists
-		}
 		es.r = ev
-		es.events |= syscall.EPOLLIN
+		es.epEvents |= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
-		if es.w != nil {
-			return ErrEventExists
-		}
 		es.w = ev
-		es.events |= syscall.EPOLLOUT
+		es.epEvents |= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
-		if es.c != nil {
-			return ErrEventExists
-		}
 		es.c = ev
-		es.events |= syscall.EPOLLRDHUP
+		es.epEvents |= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
-		es.events |= syscall.EPOLLET & 0xFFFFFFFF
+		es.epEvents |= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
-	epEv := &syscall.EpollEvent{Events: es.events}
+	epEv := &syscall.EpollEvent{Events: es.epEvents}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -112,30 +110,32 @@ func (ep *epoll) del(ev *Event) error {
 
 	es := ep.fdEvs[ev.fd]
 
+	es.events &^= ev.events
+
 	if ev.events&EvRead != 0 {
 		es.r = nil
-		es.events &^= syscall.EPOLLIN
+		es.epEvents &^= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = nil
-		es.events &^= syscall.EPOLLOUT
+		es.epEvents &^= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = nil
-		es.events &^= syscall.EPOLLRDHUP
+		es.epEvents &^= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
-		es.events &^= syscall.EPOLLET & 0xFFFFFFFF
+		es.epEvents &^= syscall.EPOLLET & 0xFFFFFFFF
 	}
 
 	op := syscall.EPOLL_CTL_DEL
-	if es.events == 0 {
+	if es.epEvents == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	epEv := &syscall.EpollEvent{Events: es.events}
+	epEv := &syscall.EpollEvent{Events: es.epEvents}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
