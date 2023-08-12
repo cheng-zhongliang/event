@@ -71,7 +71,6 @@ func (sp *signaler) unsubscribe(sig int) error {
 			sp.signals = append(sp.signals[:i], sp.signals[i+1:]...)
 			break
 		}
-
 	}
 
 	if i == len(sp.signals)-1 {
