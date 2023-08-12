@@ -1,11 +1,14 @@
 package event
 
 import (
+	"errors"
 	"syscall"
 )
 
 var (
 	ErrBadFileDescriptor = syscall.EBADF
+	ErrEventExists       = errors.New("event exists")
+	ErrEventNotExists    = errors.New("event does not exist")
 )
 
 func temporaryErr(err error) bool {

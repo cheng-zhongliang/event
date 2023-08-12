@@ -139,6 +139,8 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 		if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
 			return bs.poller.add(ev)
 		}
+	} else {
+		return ErrEventExists
 	}
 
 	return nil
@@ -159,6 +161,8 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 		if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
 			return bs.poller.del(ev)
 		}
+	} else {
+		return ErrEventNotExists
 	}
 
 	return nil

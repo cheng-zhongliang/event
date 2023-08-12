@@ -47,25 +47,32 @@ func (sp *signaler) close() {
 	sp.wg.Wait()
 }
 
-func (sp *signaler) subscribe(sig int) {
+func (sp *signaler) subscribe(sig int) error {
 	for _, s := range sp.signals {
 		if s == syscall.Signal(sig) {
-			return
+			return ErrEventExists
 		}
 	}
 	sp.signals = append(sp.signals, syscall.Signal(sig))
 
 	signal.Notify(sp.signalCh, sp.signals...)
+
+	return nil
 }
 
-func (sp *signaler) unsubscribe(sig int) {
+func (sp *signaler) unsubscribe(sig int) error {
 	for i, s := range sp.signals {
 		if s == syscall.Signal(sig) {
 			sp.signals = append(sp.signals[:i], sp.signals[i+1:]...)
 			break
 		}
+		if i == len(sp.signals)-1 {
+			return ErrEventNotExists
+		}
 	}
 
 	signal.Stop(sp.signalCh)
 	signal.Notify(sp.signalCh, sp.signals...)
+
+	return nil
 }
