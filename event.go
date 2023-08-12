@@ -128,19 +128,22 @@ func NewBase() (*EventBase, error) {
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the timeout is required.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
+	if ev.flags&EvListInserted != 0 {
+		return ErrEventExists
+	}
+
+	if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
+		if err := bs.poller.add(ev); err != nil {
+			return err
+		}
+	}
+
+	bs.eventQueueInsert(ev, EvListInserted)
+
 	if timeout > 0 && ev.flags&EvListTimeout == 0 {
 		ev.timeout = timeout
 		ev.deadline = time.Now().Add(timeout).UnixMilli()
 		bs.eventQueueInsert(ev, EvListTimeout)
-	}
-
-	if ev.flags&EvListInserted == 0 {
-		bs.eventQueueInsert(ev, EvListInserted)
-		if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
-			return bs.poller.add(ev)
-		}
-	} else {
-		return ErrEventExists
 	}
 
 	return nil
@@ -148,6 +151,10 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 // DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
+	if ev.flags&EvListInserted == 0 {
+		return ErrEventNotExists
+	}
+
 	if ev.flags&EvListTimeout != 0 {
 		bs.eventQueueRemove(ev, EvListTimeout)
 	}
@@ -156,14 +163,13 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 		bs.eventQueueRemove(ev, EvListActive)
 	}
 
-	if ev.flags&EvListInserted != 0 {
-		bs.eventQueueRemove(ev, EvListInserted)
-		if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
-			return bs.poller.del(ev)
+	if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
+		if err := bs.poller.del(ev); err != nil {
+			return err
 		}
-	} else {
-		return ErrEventNotExists
 	}
+
+	bs.eventQueueRemove(ev, EvListInserted)
 
 	return nil
 }
