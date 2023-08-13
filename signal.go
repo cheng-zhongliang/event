@@ -61,19 +61,17 @@ func (sp *signaler) subscribe(sig int) error {
 }
 
 func (sp *signaler) unsubscribe(sig int) error {
-	var (
-		i int
-		s os.Signal
-	)
+	notExists := true
 
-	for i, s = range sp.signals {
+	for i, s := range sp.signals {
 		if s == syscall.Signal(sig) {
+			notExists = false
 			sp.signals = append(sp.signals[:i], sp.signals[i+1:]...)
 			break
 		}
 	}
 
-	if i == len(sp.signals)-1 {
+	if notExists {
 		return ErrEventNotExists
 	}
 
