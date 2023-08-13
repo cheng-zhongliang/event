@@ -109,9 +109,12 @@ func (ep *epoll) add(ev *Event) error {
 
 func (ep *epoll) del(ev *Event) error {
 	if ev.events&EvSignal != 0 {
-		delete(ep.signalEvs, ev.fd)
-		ep.signaler.unsubscribe(ev.fd)
-		return nil
+		if _, ok := ep.signalEvs[ev.fd]; ok {
+			delete(ep.signalEvs, ev.fd)
+			ep.signaler.unsubscribe(ev.fd)
+			return nil
+		}
+		return ErrEventNotExists
 	}
 
 	es := ep.fdEvs[ev.fd]
