@@ -190,8 +190,8 @@ func (bs *EventBase) Dispatch() error {
 }
 
 // Exit exit event loop.
-func (bs *EventBase) Exit() {
-	bs.poller.close()
+func (bs *EventBase) Exit() error {
+	return bs.poller.close()
 }
 
 func (bs *EventBase) waitTime() int {

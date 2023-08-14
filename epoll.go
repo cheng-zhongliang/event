@@ -199,11 +199,18 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 	return nil
 }
 
-func (ep *epoll) close() {
+func (ep *epoll) close() error {
 	ep.signaler.close()
-	syscall.Close(ep.signalFd0)
-	syscall.Close(ep.signalFd1)
-	syscall.Close(ep.fd)
+	if err := syscall.Close(ep.signalFd0); err != nil {
+		return err
+	}
+	if err := syscall.Close(ep.signalFd1); err != nil {
+		return err
+	}
+	if err := syscall.Close(ep.fd); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ep *epoll) triggerSignal(signal int) {
@@ -213,11 +220,9 @@ func (ep *epoll) triggerSignal(signal int) {
 func (ep *epoll) onSignal(cb func(ev *Event, res uint32)) {
 	buf := make([]byte, 1)
 	syscall.Read(ep.signalFd0, buf)
-
 	ev, ok := ep.signalEvs[int(buf[0])]
 	if !ok {
 		return
 	}
-
 	cb(ev, EvSignal)
 }

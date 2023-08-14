@@ -189,7 +189,9 @@ func echo(fd int, events uint32, arg interface{}) {
 
 func exit(fd int, events uint32, arg interface{}) {
 	base := arg.(*event.EventBase)
-	base.Exit()
+	if err := base.Exit(); err != nil {
+		panic(err)
+	}
 }
 ```
 
