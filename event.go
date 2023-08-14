@@ -138,13 +138,13 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 		}
 	}
 
-	bs.eventQueueInsert(ev, EvListInserted)
-
 	if timeout > 0 && ev.flags&EvListTimeout == 0 {
 		ev.timeout = timeout
 		ev.deadline = time.Now().Add(timeout).UnixMilli()
 		bs.eventQueueInsert(ev, EvListTimeout)
 	}
+
+	bs.eventQueueInsert(ev, EvListInserted)
 
 	return nil
 }
