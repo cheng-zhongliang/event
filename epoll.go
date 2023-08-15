@@ -93,18 +93,19 @@ func (ep *epoll) add(ev *Event) error {
 		return ErrEventExists
 	}
 
-	es.events |= ev.events
-
 	if ev.events&EvRead != 0 {
 		es.r = ev
+		es.events |= EvRead
 		es.epEvents |= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = ev
+		es.events |= EvWrite
 		es.epEvents |= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = ev
+		es.events |= EvClosed
 		es.epEvents |= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
@@ -130,18 +131,19 @@ func (ep *epoll) del(ev *Event) error {
 
 	es := ep.fdEvs[ev.fd]
 
-	es.events &^= ev.events
-
 	if ev.events&EvRead != 0 {
 		es.r = nil
+		es.events &^= EvRead
 		es.epEvents &^= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = nil
+		es.events &^= EvWrite
 		es.epEvents &^= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = nil
+		es.events &^= EvClosed
 		es.epEvents &^= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
