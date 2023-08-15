@@ -12,7 +12,7 @@
 <a title="Tag" target="_blank" href="https://github.com/cheng-zhongliang/event/tags"><img src="https://img.shields.io/github/v/tag/cheng-zhongliang/event?color=%23ff8936&logo=fitbit" /></a>
 <a title="Require Go Version" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-%3E%3D1.20-30dff3?logo=go" /></a>
 <a title="Supported Platforms" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/platform-Linux-549688?logo=launchpad" /></a>
-<a title="Mentioned in Awesome Go" target="_blank" href="https://github.com/avelino/awesome-go#networking"><img src="https://awesome.re/mentioned-badge-flat.svg" /></a>
+<a title="Mentioned in Awesome Go" target="_blank" href="https://github.com/avelino/awesome-go#networking"><img src="https://awesome.re/mentioned-badge.svg" /></a>
 </p>
 
 `event` is a network I/O event notification library for Go. It uses [epoll](https://en.wikipedia.org/wiki/Epoll) to poll I/O events that is fast and low memory usage. It works in a similar manner as [libevent](https://github.com/libevent/libevent).
