@@ -200,14 +200,19 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 			}
 		}
 
+		ET := uint32(0)
+		if es.epEvents&(syscall.EPOLLET&0xFFFFFFFF) != 0 {
+			ET = EvET
+		}
+
 		if evRead != nil {
-			cb(evRead, EvRead|EvET)
+			cb(evRead, EvRead|ET)
 		}
 		if evWrite != nil {
-			cb(evWrite, EvWrite|EvET)
+			cb(evWrite, EvWrite|ET)
 		}
 		if evClosed != nil {
-			cb(evClosed, EvClosed|EvET)
+			cb(evClosed, EvClosed|ET)
 		}
 	}
 
