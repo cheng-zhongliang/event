@@ -146,12 +146,9 @@ func (ep *epoll) del(ev *Event) error {
 		es.events &^= EvClosed
 		es.epEvents &^= syscall.EPOLLRDHUP
 	}
-	if ev.events&EvET != 0 {
-		es.epEvents &^= syscall.EPOLLET & 0xFFFFFFFF
-	}
 
 	op := syscall.EPOLL_CTL_DEL
-	if es.epEvents == 0 {
+	if es.events == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
