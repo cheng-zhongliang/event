@@ -41,18 +41,25 @@ type epoll struct {
 }
 
 func newEpoll() (*epoll, error) {
-	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
+	fd, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return nil, err
 	}
 
-	signalFds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_SEQPACKET|syscall.SOCK_CLOEXEC, 0)
+	signalFds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_SEQPACKET, 0)
 	if err != nil {
+		syscall.Close(fd)
 		return nil, err
 	}
 
-	err = syscall.EpollCtl(fd, syscall.EPOLL_CTL_ADD, signalFds[0], &syscall.EpollEvent{Events: syscall.EPOLLIN, Fd: int32(signalFds[0])})
+	err = syscall.EpollCtl(fd, syscall.EPOLL_CTL_ADD, signalFds[0], &syscall.EpollEvent{
+		Events: syscall.EPOLLIN,
+		Fd:     int32(signalFds[0]),
+	})
 	if err != nil {
+		syscall.Close(fd)
+		syscall.Close(signalFds[0])
+		syscall.Close(signalFds[1])
 		return nil, err
 	}
 
