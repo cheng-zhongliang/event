@@ -31,9 +31,9 @@ const (
 	EvClosed = 1 << iota
 
 	// EvPersist is persistent option. If not set, the event will be deleted after it is triggered.
-	EvPersist = 020
+	EvPersist = 040
 	// EvET is edge-triggered behavior option.
-	EvET = 040
+	EvET = 0100
 
 	// EvListInserted is the flag to indicate the event is in the event list.
 	EvListInserted = 0x01
@@ -139,11 +139,15 @@ func NewBase() (*EventBase, error) {
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the timeout is required.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
+	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal|EvTimeout) == 0 {
+		return ErrEventInvalid
+	}
+
 	if ev.flags&EvListInserted != 0 {
 		return ErrEventExists
 	}
 
-	if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
+	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
 		if err := bs.poller.add(ev); err != nil {
 			return err
 		}
@@ -174,7 +178,7 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 		bs.eventQueueRemove(ev, EvListActive)
 	}
 
-	if ev.events&(EvRead|EvWrite|EvSignal) != 0 {
+	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
 		if err := bs.poller.del(ev); err != nil {
 			return err
 		}
