@@ -305,7 +305,7 @@ func TestPriority(t *testing.T) {
 		syscall.Read(int(r1), make([]byte, 8))
 		triggerTime1 = int(time.Now().UnixMicro())
 	}, "hello")
-	ev1.SetPriority(High)
+	ev1.SetPriority(HPriority)
 
 	err = base.AddEvent(ev0, 0)
 	if err != nil {
