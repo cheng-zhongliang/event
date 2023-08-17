@@ -48,6 +48,12 @@ const (
 	MPriority eventPriority = 0b01
 	// LPriority is the low priority.
 	LPriority eventPriority = 0b10
+
+	// Block until we have an active event, then exit once all active events
+	// have had their callbacks run.
+	EvLoopOnce = 0x01
+	// Do not block: see which events are ready now, run the callbacks, then exit.
+	EvLoopNoblock = 0x02
 )
 
 // Event is the event to watch.
@@ -189,19 +195,35 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 	return nil
 }
 
-// Dispatch dispatches events.
-// It will block until events trigger.
-func (bs *EventBase) Dispatch() error {
+// Loop loops events.
+// If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
+// If flags is EvLoopNoblock, it will not block. It will see which events are ready now,
+// run the callbacks, then exit.
+func (bs *EventBase) Loop(flags int) (err error) {
 	for {
-		err := bs.poller.polling(bs.onActive, bs.waitTime())
+		if flags&EvLoopNoblock != 0 {
+			err = bs.poller.polling(bs.onActive, 0)
+		} else {
+			err = bs.poller.polling(bs.onActive, bs.waitTime())
+		}
 		if err != nil {
-			return err
+			return
 		}
 
 		bs.onTimeout()
 
 		bs.handleActiveEvents()
+
+		if flags&EvLoopOnce != 0 {
+			return
+		}
 	}
+}
+
+// Dispatch dispatches events.
+// It will block until events trigger.
+func (bs *EventBase) Dispatch() error {
+	return bs.Loop(0)
 }
 
 // Exit exit event loop.
