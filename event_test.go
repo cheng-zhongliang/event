@@ -376,3 +376,57 @@ func TestEdgeTrigger(t *testing.T) {
 
 	syscall.Close(int(r0))
 }
+
+func BenchmarkEventLoop(b *testing.B) {
+	receiver := make([]int, b.N)
+	senders := make([]int, b.N)
+
+	base, err := NewBase()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	buf := make([]byte, 1)
+	fires := 0
+
+	for i := 0; i < b.N; i++ {
+		fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+		if err != nil {
+			b.Fatal(err)
+		}
+		receiver[i] = fds[0]
+		senders[i] = fds[1]
+
+		ev := New(fds[0], EvRead|EvPersist, func(fd int, events uint32, arg interface{}) {
+			syscall.Read(fd, buf)
+			fires++
+		}, nil)
+		err = base.AddEvent(ev, 0)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		_, err = syscall.Write(fds[1], []byte{'e'})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	b.ResetTimer()
+	for fires < b.N {
+		err = base.Loop(EvLoopOnce | EvLoopNoblock)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+
+	for i := 0; i < b.N; i++ {
+		syscall.Close(receiver[i])
+		syscall.Close(senders[i])
+	}
+
+	if err := base.Exit(); err != nil {
+		b.Fatal(err)
+	}
+}
