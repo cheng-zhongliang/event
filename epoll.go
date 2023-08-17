@@ -16,6 +16,12 @@ import (
 	"unsafe"
 )
 
+const (
+	initialNEvent = 0x20
+	maxNEvent     = 0x1000
+	maxUint32     = 0xFFFFFFFF
+)
+
 // fdEvent is the event of a file descriptor.
 type fdEvent struct {
 	// r is the read event.
@@ -66,7 +72,7 @@ func newEpoll() (*epoll, error) {
 	ep := &epoll{
 		fd:        fd,
 		fdEvs:     make(map[int]*fdEvent),
-		epollEvs:  make([]syscall.EpollEvent, 0xFF),
+		epollEvs:  make([]syscall.EpollEvent, initialNEvent),
 		signalEvs: map[int]*Event{},
 		signalFd0: signalFds[0],
 		signalFd1: signalFds[1],
@@ -115,7 +121,7 @@ func (ep *epoll) add(ev *Event) error {
 		es.epEvents |= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
-		es.epEvents |= syscall.EPOLLET & 0xFFFFFFFF
+		es.epEvents |= syscall.EPOLLET & maxUint32
 	}
 
 	epEv := &syscall.EpollEvent{Events: es.epEvents}
@@ -201,7 +207,7 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 		}
 
 		ET := uint32(0)
-		if es.epEvents&(syscall.EPOLLET&0xFFFFFFFF) != 0 {
+		if es.epEvents&(syscall.EPOLLET&maxUint32) != 0 {
 			ET = EvET
 		}
 
@@ -214,6 +220,10 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 		if evClosed != nil {
 			cb(evClosed, EvClosed|ET)
 		}
+	}
+
+	if n == len(ep.epollEvs) && n < maxNEvent {
+		ep.epollEvs = make([]syscall.EpollEvent, n*2)
 	}
 
 	return nil
