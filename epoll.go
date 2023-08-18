@@ -138,6 +138,7 @@ func (ep *epoll) del(ev *Event) error {
 	}
 
 	es := ep.fdEvs[ev.fd]
+
 	if ev.events&EvRead != 0 {
 		es.r = nil
 	}
