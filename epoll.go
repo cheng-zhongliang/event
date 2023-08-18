@@ -30,10 +30,25 @@ type fdEvent struct {
 	w *Event
 	// c is the close event.
 	c *Event
-	// events is events.
-	events uint32
-	// epEvents is epoll events.
-	epEvents uint32
+	// e is the edge-triggered behavior.
+	e bool
+}
+
+func (fdEv *fdEvent) toEpollEvents() uint32 {
+	epEvents := uint32(0)
+	if fdEv.r != nil {
+		epEvents |= syscall.EPOLLIN
+	}
+	if fdEv.w != nil {
+		epEvents |= syscall.EPOLLOUT
+	}
+	if fdEv.c != nil {
+		epEvents |= syscall.EPOLLRDHUP
+	}
+	if fdEv.e {
+		epEvents |= syscall.EPOLLET & maxUint32
+	}
+	return epEvents
 }
 
 type epoll struct {
@@ -85,11 +100,8 @@ func newEpoll() (*epoll, error) {
 
 func (ep *epoll) add(ev *Event) error {
 	if ev.events&EvSignal != 0 {
-		if _, ok := ep.signalEvs[ev.fd]; !ok {
-			ep.signalEvs[ev.fd] = ev
-			return ep.signaler.subscribe(ev.fd)
-		}
-		return ErrEventExists
+		ep.signalEvs[ev.fd] = ev
+		return ep.signaler.subscribe(ev.fd)
 	}
 
 	op := syscall.EPOLL_CTL_ADD
@@ -101,30 +113,18 @@ func (ep *epoll) add(ev *Event) error {
 		ep.fdEvs[ev.fd] = es
 	}
 
-	if es.events&ev.events != 0 {
-		return ErrEventExists
-	}
-
 	if ev.events&EvRead != 0 {
 		es.r = ev
-		es.events |= EvRead
-		es.epEvents |= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = ev
-		es.events |= EvWrite
-		es.epEvents |= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = ev
-		es.events |= EvClosed
-		es.epEvents |= syscall.EPOLLRDHUP
 	}
-	if ev.events&EvET != 0 {
-		es.epEvents |= syscall.EPOLLET & maxUint32
-	}
+	es.e = ev.events&EvET != 0
 
-	epEv := &syscall.EpollEvent{Events: es.epEvents}
+	epEv := &syscall.EpollEvent{Events: es.toEpollEvents()}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -133,39 +133,29 @@ func (ep *epoll) add(ev *Event) error {
 
 func (ep *epoll) del(ev *Event) error {
 	if ev.events&EvSignal != 0 {
-		if _, ok := ep.signalEvs[ev.fd]; ok {
-			delete(ep.signalEvs, ev.fd)
-			return ep.signaler.unsubscribe(ev.fd)
-		}
-		return ErrEventNotExists
+		delete(ep.signalEvs, ev.fd)
+		return ep.signaler.unsubscribe(ev.fd)
 	}
 
 	es := ep.fdEvs[ev.fd]
-
 	if ev.events&EvRead != 0 {
 		es.r = nil
-		es.events &^= EvRead
-		es.epEvents &^= syscall.EPOLLIN
 	}
 	if ev.events&EvWrite != 0 {
 		es.w = nil
-		es.events &^= EvWrite
-		es.epEvents &^= syscall.EPOLLOUT
 	}
 	if ev.events&EvClosed != 0 {
 		es.c = nil
-		es.events &^= EvClosed
-		es.epEvents &^= syscall.EPOLLRDHUP
 	}
 
 	op := syscall.EPOLL_CTL_DEL
-	if es.events == 0 {
+	if es.toEpollEvents()&^EvET == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	epEv := &syscall.EpollEvent{Events: es.epEvents}
+	epEv := &syscall.EpollEvent{Events: es.toEpollEvents()}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -206,19 +196,14 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 			}
 		}
 
-		ET := uint32(0)
-		if es.epEvents&(syscall.EPOLLET&maxUint32) != 0 {
-			ET = EvET
-		}
-
 		if evRead != nil {
-			cb(evRead, EvRead|ET)
+			cb(evRead, EvRead|EvET)
 		}
 		if evWrite != nil {
-			cb(evWrite, EvWrite|ET)
+			cb(evWrite, EvWrite|EvET)
 		}
 		if evClosed != nil {
-			cb(evClosed, EvClosed|ET)
+			cb(evClosed, EvClosed|EvET)
 		}
 	}
 

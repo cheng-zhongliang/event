@@ -153,19 +153,17 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 		return ErrEventExists
 	}
 
-	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
-		if err := bs.poller.add(ev); err != nil {
-			return err
-		}
-	}
-
-	if timeout > 0 && ev.flags&EvListTimeout == 0 {
+	if timeout > 0 {
 		ev.timeout = timeout
 		ev.deadline = time.Now().Add(timeout).UnixMilli()
 		bs.eventQueueInsert(ev, EvListTimeout)
 	}
 
 	bs.eventQueueInsert(ev, EvListInserted)
+
+	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
+		return bs.poller.add(ev)
+	}
 
 	return nil
 }
@@ -184,13 +182,11 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 		bs.eventQueueRemove(ev, EvListActive)
 	}
 
-	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
-		if err := bs.poller.del(ev); err != nil {
-			return err
-		}
-	}
-
 	bs.eventQueueRemove(ev, EvListInserted)
+
+	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
+		return bs.poller.del(ev)
+	}
 
 	return nil
 }
@@ -283,7 +279,7 @@ func (bs *EventBase) handleActiveEvents() {
 				bs.AddEvent(ev, ev.timeout)
 			}
 
-			ev.cb(ev.fd, ev.res, ev.arg)
+			ev.cb(ev.fd, ev.res&ev.events, ev.arg)
 		}
 	}
 }
