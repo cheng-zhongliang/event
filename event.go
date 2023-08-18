@@ -195,15 +195,11 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 // If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
 // If flags is EvLoopNoblock, it will not block. It will see which events are ready now,
 // run the callbacks, then exit.
-func (bs *EventBase) Loop(flags int) (err error) {
+func (bs *EventBase) Loop(flags int) error {
 	for {
-		if flags&EvLoopNoblock != 0 {
-			err = bs.poller.polling(bs.onActive, 0)
-		} else {
-			err = bs.poller.polling(bs.onActive, bs.waitTime())
-		}
+		err := bs.poller.polling(bs.onActive, bs.waitTime(flags&EvLoopNoblock != 0))
 		if err != nil {
-			return
+			return err
 		}
 
 		bs.onTimeout()
@@ -211,7 +207,7 @@ func (bs *EventBase) Loop(flags int) (err error) {
 		bs.handleActiveEvents()
 
 		if flags&EvLoopOnce != 0 {
-			return
+			return nil
 		}
 	}
 }
@@ -227,7 +223,10 @@ func (bs *EventBase) Exit() error {
 	return bs.poller.close()
 }
 
-func (bs *EventBase) waitTime() int {
+func (bs *EventBase) waitTime(noblock bool) int {
+	if noblock {
+		return 0
+	}
 	if !bs.evHeap.empty() {
 		now := time.Now().UnixMilli()
 		ev := bs.evHeap.peekEvent()
