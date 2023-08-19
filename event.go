@@ -42,12 +42,12 @@ const (
 	// EvListTimeout is the flag to indicate the event is in the timeout event heap.
 	EvListTimeout = 0x04
 
-	// HPriority is the high priority.
-	HPriority eventPriority = 0b00
-	// MPriority is the middle priority.
-	MPriority eventPriority = 0b01
-	// LPriority is the low priority.
-	LPriority eventPriority = 0b10
+	// HPri is the high priority.
+	HPri eventPriority = 0b00
+	// MPri is the middle priority.
+	MPri eventPriority = 0b01
+	// LPri is the low priority.
+	LPri eventPriority = 0b10
 
 	// Block until we have an active event, then exit once all active events
 	// have had their callbacks run.
@@ -96,7 +96,7 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 		events:   events,
 		cb:       callback,
 		arg:      arg,
-		priority: MPriority,
+		priority: MPri,
 	}
 }
 
