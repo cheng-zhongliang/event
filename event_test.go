@@ -377,6 +377,40 @@ func TestEdgeTrigger(t *testing.T) {
 	syscall.Close(int(r0))
 }
 
+func BenchmarkEventAdd(b *testing.B) {
+	receivers := make([]int, b.N)
+	base, err := NewBase()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+		if err != nil {
+			b.Fatal(err)
+		}
+		receivers[i] = fds[0]
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+		err = base.AddEvent(ev, 0)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+
+	if err := base.Exit(); err != nil {
+		b.Fatal(err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		syscall.Close(receivers[i])
+	}
+}
+
 func BenchmarkEventLoop(b *testing.B) {
 	receiver := make([]int, b.N)
 	senders := make([]int, b.N)
