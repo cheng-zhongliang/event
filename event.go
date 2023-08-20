@@ -249,7 +249,7 @@ func (bs *EventBase) onTimeout() {
 			break
 		}
 
-		bs.DelEvent(ev)
+		bs.eventQueueRemove(ev, EvListTimeout)
 
 		bs.onActive(ev, EvTimeout)
 	}
@@ -270,15 +270,16 @@ func (bs *EventBase) handleActiveEvents() {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
 			ev := e.value
-			if ev.events&EvPersist != 0 || ev.events&EvTimeout != 0 {
+			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, EvListActive)
 			} else {
 				bs.DelEvent(ev)
 			}
 			e = next
 
-			if ev.events&EvTimeout != 0 && ev.events&EvPersist != 0 {
-				bs.AddEvent(ev, ev.timeout)
+			if ev.res&EvTimeout != 0 && ev.events&EvPersist != 0 {
+				ev.deadline = time.Now().Add(ev.timeout).UnixMilli()
+				bs.eventQueueInsert(ev, EvListTimeout)
 			}
 
 			ev.cb(ev.fd, ev.res, ev.arg)
