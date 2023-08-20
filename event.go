@@ -91,9 +91,13 @@ type Event struct {
 
 // New creates a new event.
 func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
-	ev := &Event{}
-	ev.Assign(fd, events, callback, arg, MPri)
-	return ev
+	return &Event{
+		fd:       fd,
+		events:   events,
+		cb:       callback,
+		arg:      arg,
+		priority: MPri,
+	}
 }
 
 // SetPriority sets the priority of the event.
