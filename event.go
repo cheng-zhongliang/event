@@ -59,9 +59,9 @@ const (
 // Event is the event to watch.
 type Event struct {
 	// ele is the element in the total event list.
-	ele *eventListEle
+	ele eventListEle
 	// activeEle is the element in the active event list.
-	activeEle *eventListEle
+	activeEle eventListEle
 	// index is the index in the event heap.
 	index int
 
@@ -108,13 +108,19 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.cb = callback
 	ev.arg = arg
 	ev.priority = priority
-	ev.ele = nil
-	ev.activeEle = nil
 	ev.index = -1
 	ev.res = 0
 	ev.flags = 0
 	ev.deadline = 0
 	ev.timeout = 0
+	ev.ele.next = nil
+	ev.ele.prev = nil
+	ev.ele.list = nil
+	ev.ele.value = nil
+	ev.activeEle.next = nil
+	ev.activeEle.prev = nil
+	ev.activeEle.list = nil
+	ev.activeEle.value = nil
 }
 
 // EventBase is the base of all events.
@@ -295,11 +301,11 @@ func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
 	ev.flags |= which
 	switch which {
 	case EvListInserted:
-		ev.ele = bs.evList.pushBack(ev)
+		bs.evList.pushBack(ev, &ev.ele)
 	case EvListActive:
-		ev.activeEle = bs.activeEvLists[ev.priority].pushBack(ev)
+		bs.activeEvLists[ev.priority].pushBack(ev, &ev.activeEle)
 	case EvListTimeout:
-		ev.index = bs.evHeap.pushEvent(ev)
+		bs.evHeap.pushEvent(ev)
 	}
 }
 
@@ -311,13 +317,10 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 	ev.flags &^= which
 	switch which {
 	case EvListInserted:
-		bs.evList.remove(ev.ele)
-		ev.ele = nil
+		bs.evList.remove(&ev.ele)
 	case EvListActive:
-		bs.activeEvLists[ev.priority].remove(ev.activeEle)
-		ev.activeEle = nil
+		bs.activeEvLists[ev.priority].remove(&ev.activeEle)
 	case EvListTimeout:
 		bs.evHeap.removeEvent(ev.index)
-		ev.index = -1
 	}
 }

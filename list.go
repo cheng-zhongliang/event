@@ -44,8 +44,9 @@ func (l *eventList) front() *eventListEle {
 	return l.root.next
 }
 
-func (l *eventList) pushBack(ev *Event) *eventListEle {
-	e := &eventListEle{list: l, value: ev}
+func (l *eventList) pushBack(ev *Event, e *eventListEle) {
+	e.list = l
+	e.value = ev
 	n := &l.root
 	p := n.prev
 	e.next = n
@@ -53,15 +54,14 @@ func (l *eventList) pushBack(ev *Event) *eventListEle {
 	p.next = e
 	n.prev = e
 	l.len++
-	return e
 }
 
-func (l *eventList) remove(e *eventListEle) *Event {
+func (l *eventList) remove(e *eventListEle) {
 	e.prev.next = e.next
 	e.next.prev = e.prev
 	e.next = nil
 	e.prev = nil
 	e.list = nil
+	e.value = nil
 	l.len--
-	return e.value
 }

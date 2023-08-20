@@ -63,14 +63,13 @@ func (eh eventHeap) down(i0, n int) bool {
 	return i > i0
 }
 
-func (eh *eventHeap) pushEvent(ev *Event) int {
+func (eh *eventHeap) pushEvent(ev *Event) {
 	*eh = append(*eh, ev)
 	ev.index = eh.len() - 1
 	eh.up(ev.index)
-	return ev.index
 }
 
-func (eh *eventHeap) removeEvent(index int) *Event {
+func (eh *eventHeap) removeEvent(index int) {
 	n := eh.len() - 1
 	if n != index {
 		eh.swap(index, n)
@@ -78,9 +77,8 @@ func (eh *eventHeap) removeEvent(index int) *Event {
 			eh.up(index)
 		}
 	}
-	ev := (*eh)[n]
+	(*eh)[n].index = -1
 	*eh = (*eh)[:n]
-	return ev
 }
 
 func (eh *eventHeap) peekEvent() *Event {
