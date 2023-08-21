@@ -133,9 +133,9 @@ type EventBase struct {
 	poller *epoll
 	// evList is the list of all events.
 	evList *eventList
-	// ActiveEvList is the list of active events.
+	// activeEvList is the list of active events.
 	activeEvLists []*eventList
-	// EventHeap is the min heap of timeout events.
+	// eventHeap is the min heap of timeout events.
 	evHeap *eventHeap
 	// timeCache is the cache of now time.
 	timeCache time.Time
