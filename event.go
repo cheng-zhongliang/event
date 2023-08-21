@@ -80,10 +80,10 @@ type Event struct {
 	// flags is the status of the event in the event list. It can be EvListInserted or EvListActive.
 	flags int
 
-	// timeout is the timeout in milliseconds.
+	// timeout is the timeout of the event.
 	timeout time.Duration
 	// deadline is the deadline for the event.
-	deadline int64
+	deadline time.Time
 
 	// priority is the priority of the event.
 	priority eventPriority
@@ -115,7 +115,6 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.index = -1
 	ev.res = 0
 	ev.flags = 0
-	ev.deadline = 0
 	ev.timeout = 0
 	ev.ele.next = nil
 	ev.ele.prev = nil
@@ -168,7 +167,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 	if timeout > 0 {
 		ev.timeout = timeout
-		ev.deadline = time.Now().Add(timeout).UnixMilli()
+		ev.deadline = time.Now().Add(timeout)
 		bs.eventQueueInsert(ev, EvListTimeout)
 	}
 
@@ -241,10 +240,9 @@ func (bs *EventBase) waitTime(noblock bool) int {
 		return 0
 	}
 	if !bs.evHeap.empty() {
-		now := time.Now().UnixMilli()
 		ev := bs.evHeap.peekEvent()
-		if ev.deadline > now {
-			return int(ev.deadline - now)
+		if d := time.Until(ev.deadline); d > 0 {
+			return int(d.Milliseconds())
 		}
 		return 0
 	}
@@ -252,10 +250,10 @@ func (bs *EventBase) waitTime(noblock bool) int {
 }
 
 func (bs *EventBase) onTimeout() {
-	now := time.Now().UnixMilli()
+	now := time.Now()
 	for !bs.evHeap.empty() {
 		ev := bs.evHeap.peekEvent()
-		if ev.deadline > now {
+		if ev.deadline.After(now) {
 			break
 		}
 
@@ -288,7 +286,7 @@ func (bs *EventBase) handleActiveEvents() {
 			e = next
 
 			if ev.res&EvTimeout != 0 && ev.events&EvPersist != 0 {
-				ev.deadline = time.Now().Add(ev.timeout).UnixMilli()
+				ev.deadline = time.Now().Add(ev.timeout)
 				bs.eventQueueInsert(ev, EvListTimeout)
 			}
 

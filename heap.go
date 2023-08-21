@@ -19,7 +19,7 @@ func newEventHeap() *eventHeap {
 }
 
 func (eh eventHeap) less(i, j int) bool {
-	return eh[i].deadline < eh[j].deadline
+	return eh[i].deadline.Before(eh[j].deadline)
 }
 
 func (eh eventHeap) swap(i, j int) {
