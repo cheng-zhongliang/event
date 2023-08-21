@@ -137,6 +137,8 @@ type EventBase struct {
 	activeEvLists []*eventList
 	// EventHeap is the min heap of timeout events.
 	evHeap *eventHeap
+	// timeCache is the cache of now time.
+	timeCache time.Time
 }
 
 // NewBase creates a new event base.
@@ -168,7 +170,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 	if timeout > 0 {
 		ev.timeout = timeout
-		ev.deadline = time.Now().Add(timeout)
+		ev.deadline = bs.now().Add(timeout)
 		bs.eventQueueInsert(ev, EvListTimeout)
 	}
 
@@ -209,11 +211,19 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 // If flags is EvLoopNoblock, it will not block. It will see which events are ready now,
 // run the callbacks, then exit.
 func (bs *EventBase) Loop(flags int) error {
+	bs.clearTimeCache()
+
 	for {
-		err := bs.poller.polling(bs.onActive, bs.waitTime(flags&EvLoopNoblock != 0))
+		timeout := bs.waitTime(flags&EvLoopNoblock != 0)
+
+		bs.clearTimeCache()
+
+		err := bs.poller.polling(bs.onActive, timeout)
 		if err != nil {
 			return err
 		}
+
+		bs.updateTimeCache()
 
 		bs.onTimeout()
 
@@ -242,7 +252,7 @@ func (bs *EventBase) waitTime(noblock bool) int {
 	}
 	if !bs.evHeap.empty() {
 		ev := bs.evHeap.peekEvent()
-		if d := time.Until(ev.deadline); d > 0 {
+		if d := bs.now().Sub(ev.deadline); d > 0 {
 			return int(d.Milliseconds())
 		}
 		return 0
@@ -251,7 +261,7 @@ func (bs *EventBase) waitTime(noblock bool) int {
 }
 
 func (bs *EventBase) onTimeout() {
-	now := time.Now()
+	now := bs.now()
 	for !bs.evHeap.empty() {
 		ev := bs.evHeap.peekEvent()
 		if ev.deadline.After(now) {
@@ -326,4 +336,19 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 	case EvListTimeout:
 		bs.evHeap.removeEvent(ev.index)
 	}
+}
+
+func (bs *EventBase) now() time.Time {
+	if !bs.timeCache.IsZero() {
+		return bs.timeCache
+	}
+	return time.Now()
+}
+
+func (bs *EventBase) updateTimeCache() {
+	bs.timeCache = time.Now()
+}
+
+func (bs *EventBase) clearTimeCache() {
+	bs.timeCache = time.Time{}
 }
