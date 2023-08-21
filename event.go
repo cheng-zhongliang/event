@@ -115,6 +115,7 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.index = -1
 	ev.res = 0
 	ev.flags = 0
+	ev.deadline = time.Time{}
 	ev.timeout = 0
 	ev.ele.next = nil
 	ev.ele.prev = nil
