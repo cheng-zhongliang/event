@@ -45,7 +45,7 @@ func (fdEv *fdEvent) toEpollEvents() uint32 {
 	if fdEv.c != nil {
 		epEvents |= syscall.EPOLLRDHUP
 	}
-	if fdEv.e {
+	if epEvents != 0 && fdEv.e {
 		epEvents |= syscall.EPOLLET & maxUint32
 	}
 	return epEvents
@@ -150,7 +150,7 @@ func (ep *epoll) del(ev *Event) error {
 	}
 
 	op := syscall.EPOLL_CTL_DEL
-	if es.toEpollEvents()&^EvET == 0 {
+	if es.toEpollEvents() == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
