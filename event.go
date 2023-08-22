@@ -16,7 +16,7 @@ import (
 )
 
 // eventPriority is the priority of the event.
-type eventPriority int
+type eventPriority uint8
 
 const (
 	// EvRead is readable event.
