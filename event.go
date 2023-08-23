@@ -35,12 +35,12 @@ const (
 	// EvET is edge-triggered behavior option.
 	EvET = 0100
 
-	// EvListInserted is the flag to indicate the event is in the event list.
-	EvListInserted = 0x01
-	// EvListActive is the flag to indicate the event is in the active event list.
-	EvListActive = 0x02
-	// EvListTimeout is the flag to indicate the event is in the timeout event heap.
-	EvListTimeout = 0x04
+	// evListInserted is the flag to indicate the event is in the event list.
+	evListInserted = 0x01
+	// evListActive is the flag to indicate the event is in the active event list.
+	evListActive = 0x02
+	// evListTimeout is the flag to indicate the event is in the timeout event heap.
+	evListTimeout = 0x04
 
 	// HPri is the high priority.
 	HPri eventPriority = 0b00
@@ -77,7 +77,7 @@ type Event struct {
 
 	// res is the result passed to the callback function.
 	res uint32
-	// flags is the status of the event in the event list. It can be EvListInserted or EvListActive.
+	// flags is the status of the event in the event list. It can be evListInserted or evListActive.
 	flags int
 
 	// timeout is the timeout of the event.
@@ -164,17 +164,17 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 		return ErrEventInvalid
 	}
 
-	if ev.flags&EvListInserted != 0 {
+	if ev.flags&evListInserted != 0 {
 		return ErrEventExists
 	}
 
 	if timeout > 0 {
 		ev.timeout = timeout
 		ev.deadline = bs.now().Add(timeout)
-		bs.eventQueueInsert(ev, EvListTimeout)
+		bs.eventQueueInsert(ev, evListTimeout)
 	}
 
-	bs.eventQueueInsert(ev, EvListInserted)
+	bs.eventQueueInsert(ev, evListInserted)
 
 	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
 		return bs.poller.add(ev)
@@ -185,19 +185,19 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 // DelEvent deletes an event from the event base.
 func (bs *EventBase) DelEvent(ev *Event) error {
-	if ev.flags&EvListInserted == 0 {
+	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
 	}
 
-	if ev.flags&EvListTimeout != 0 {
-		bs.eventQueueRemove(ev, EvListTimeout)
+	if ev.flags&evListTimeout != 0 {
+		bs.eventQueueRemove(ev, evListTimeout)
 	}
 
-	if ev.flags&EvListActive != 0 {
-		bs.eventQueueRemove(ev, EvListActive)
+	if ev.flags&evListActive != 0 {
+		bs.eventQueueRemove(ev, evListActive)
 	}
 
-	bs.eventQueueRemove(ev, EvListInserted)
+	bs.eventQueueRemove(ev, evListInserted)
 
 	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
 		return bs.poller.del(ev)
@@ -268,20 +268,20 @@ func (bs *EventBase) onTimeout() {
 			break
 		}
 
-		bs.eventQueueRemove(ev, EvListTimeout)
+		bs.eventQueueRemove(ev, evListTimeout)
 
 		bs.onActive(ev, EvTimeout)
 	}
 }
 
 func (bs *EventBase) onActive(ev *Event, res uint32) {
-	if ev.flags&EvListActive != 0 {
+	if ev.flags&evListActive != 0 {
 		ev.res |= res
 		return
 	}
 
 	ev.res = res
-	bs.eventQueueInsert(ev, EvListActive)
+	bs.eventQueueInsert(ev, evListActive)
 }
 
 func (bs *EventBase) handleActiveEvents() {
@@ -290,7 +290,7 @@ func (bs *EventBase) handleActiveEvents() {
 			next := e.nextEle()
 			ev := e.value
 			if ev.events&EvPersist != 0 {
-				bs.eventQueueRemove(ev, EvListActive)
+				bs.eventQueueRemove(ev, evListActive)
 			} else {
 				bs.DelEvent(ev)
 			}
@@ -298,7 +298,7 @@ func (bs *EventBase) handleActiveEvents() {
 
 			if ev.res&EvTimeout != 0 && ev.events&EvPersist != 0 {
 				ev.deadline = bs.now().Add(ev.timeout)
-				bs.eventQueueInsert(ev, EvListTimeout)
+				bs.eventQueueInsert(ev, evListTimeout)
 			}
 
 			ev.cb(ev.fd, ev.res, ev.arg)
@@ -307,17 +307,17 @@ func (bs *EventBase) handleActiveEvents() {
 }
 
 func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
-	if ev.flags&which != 0 && ev.flags&EvListActive != 0 {
+	if ev.flags&which != 0 && ev.flags&evListActive != 0 {
 		return
 	}
 
 	ev.flags |= which
 	switch which {
-	case EvListInserted:
+	case evListInserted:
 		bs.evList.pushBack(ev, &ev.ele)
-	case EvListActive:
+	case evListActive:
 		bs.activeEvLists[ev.priority].pushBack(ev, &ev.activeEle)
-	case EvListTimeout:
+	case evListTimeout:
 		bs.evHeap.pushEvent(ev)
 	}
 }
@@ -329,11 +329,11 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 
 	ev.flags &^= which
 	switch which {
-	case EvListInserted:
+	case evListInserted:
 		bs.evList.remove(&ev.ele)
-	case EvListActive:
+	case evListActive:
 		bs.activeEvLists[ev.priority].remove(&ev.activeEle)
-	case EvListTimeout:
+	case evListTimeout:
 		bs.evHeap.removeEvent(ev.index)
 	}
 }
