@@ -58,7 +58,7 @@ func (sp *signaler) close() {
 	sp.wg.Wait()
 }
 
-func (sp *signaler) subscribe(sig int) error {
+func (sp *signaler) add(sig int) error {
 	for _, s := range sp.signals {
 		if s == syscall.Signal(sig) {
 			return ErrEventExists
@@ -69,7 +69,7 @@ func (sp *signaler) subscribe(sig int) error {
 	return nil
 }
 
-func (sp *signaler) unsubscribe(sig int) error {
+func (sp *signaler) del(sig int) error {
 	notExists := true
 	for i, s := range sp.signals {
 		if s == syscall.Signal(sig) {

@@ -101,7 +101,7 @@ func newEpoll() (*epoll, error) {
 func (ep *epoll) add(ev *Event) error {
 	if ev.events&EvSignal != 0 {
 		ep.signalEvs[ev.fd] = ev
-		return ep.signaler.subscribe(ev.fd)
+		return ep.signaler.add(ev.fd)
 	}
 
 	op := syscall.EPOLL_CTL_ADD
@@ -134,7 +134,7 @@ func (ep *epoll) add(ev *Event) error {
 func (ep *epoll) del(ev *Event) error {
 	if ev.events&EvSignal != 0 {
 		delete(ep.signalEvs, ev.fd)
-		return ep.signaler.unsubscribe(ev.fd)
+		return ep.signaler.del(ev.fd)
 	}
 
 	es := ep.fdEvs[ev.fd]
