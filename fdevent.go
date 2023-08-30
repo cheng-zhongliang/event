@@ -11,6 +11,10 @@ type fdEvent struct {
 	nET    uint8
 }
 
+func newFdEvent() *fdEvent {
+	return &fdEvent{list: newList()}
+}
+
 func (fdEv *fdEvent) add(ev *Event) {
 	fdEv.list.pushBack(ev, &ev.fdEle)
 	if ev.events&EvRead != 0 {

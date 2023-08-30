@@ -47,7 +47,7 @@ func (ep *epoll) add(ev *Event) error {
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
 	} else {
-		es = &fdEvent{list: newList()}
+		es = newFdEvent()
 		ep.fdEvs[ev.fd] = es
 	}
 
