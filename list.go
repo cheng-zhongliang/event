@@ -11,42 +11,42 @@
 
 package event
 
-type eventListEle struct {
-	next, prev *eventListEle
-	list       *eventList
-	value      *Event
+type element struct {
+	next, prev *element
+	list       *list
+	value      interface{}
 }
 
-func (e *eventListEle) nextEle() *eventListEle {
+func (e *element) nextEle() *element {
 	if p := e.next; e.list != nil && p != &e.list.root {
 		return p
 	}
 	return nil
 }
 
-type eventList struct {
-	root eventListEle
+type list struct {
+	root element
 	len  int
 }
 
-func newEventList() *eventList {
-	l := new(eventList)
+func newList() *list {
+	l := new(list)
 	l.root.next = &l.root
 	l.root.prev = &l.root
 	l.len = 0
 	return l
 }
 
-func (l *eventList) front() *eventListEle {
+func (l *list) front() *element {
 	if l.len == 0 {
 		return nil
 	}
 	return l.root.next
 }
 
-func (l *eventList) pushBack(ev *Event, e *eventListEle) {
+func (l *list) pushBack(v interface{}, e *element) {
 	e.list = l
-	e.value = ev
+	e.value = v
 	n := &l.root
 	p := n.prev
 	e.next = n
@@ -56,7 +56,7 @@ func (l *eventList) pushBack(ev *Event, e *eventListEle) {
 	l.len++
 }
 
-func (l *eventList) remove(e *eventListEle) {
+func (l *list) remove(e *element) {
 	e.prev.next = e.next
 	e.next.prev = e.prev
 	e.next = nil

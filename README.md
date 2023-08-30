@@ -45,7 +45,6 @@ $ go get -u github.com/cheng-zhongliang/event
 - `EvWrite` fires when the fd is writable.
 - `EvClosed` fires when the connection has closed.
 - `EvTimeout` fires when the timeout expires.
-- `EvSignal` fires when the os signal arrives.
 - `EvPersist` __if not set, the event will be deleted after it is triggered.__
 
 When the event is triggered, the callback function will be called.
@@ -61,16 +60,6 @@ base.AddEvent(ev, 1*time.Second)
 ```
 
 When the fd is readable or timeout expires, this event will be triggered.
-
-### Signal
-
-The signal event will be triggered when the os signal arrives.
-
-```go
-base := event.NewBase()
-ev := event.NewSignal(os.Interrupt, callback, arg)
-base.AddEvent(ev, 0)
-```
 
 ### Timer
 
@@ -134,11 +123,6 @@ func main() {
 		panic(err)
 	}
 
-	exitEv := event.NewSignal(syscall.SIGINT, exit, base)
-	if err := base.AddEvent(exitEv, 0); err != nil {
-		panic(err)
-	}
-
 	if err := base.Dispatch(); err != nil && err != event.ErrBadFileDescriptor {
 		panic(err)
 	}
@@ -183,13 +167,6 @@ func echo(fd int, events uint32, arg interface{}) {
 		panic(err)
 	}
 	if _, err := syscall.Write(fd, buf[:n]); err != nil {
-		panic(err)
-	}
-}
-
-func exit(fd int, events uint32, arg interface{}) {
-	base := arg.(*event.EventBase)
-	if err := base.Exit(); err != nil {
 		panic(err)
 	}
 }

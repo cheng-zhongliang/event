@@ -22,43 +22,10 @@ const (
 	maxUint32     = 0xFFFFFFFF
 )
 
-// fdEvent is the event of a file descriptor.
-type fdEvent struct {
-	// r is the read event.
-	r *Event
-	// w is the write event.
-	w *Event
-	// c is the close event.
-	c *Event
-	// e is the edge-triggered behavior.
-	e bool
-}
-
-func (fdEv *fdEvent) toEpollEvents() uint32 {
-	epEvents := uint32(0)
-	if fdEv.r != nil {
-		epEvents |= syscall.EPOLLIN
-	}
-	if fdEv.w != nil {
-		epEvents |= syscall.EPOLLOUT
-	}
-	if fdEv.c != nil {
-		epEvents |= syscall.EPOLLRDHUP
-	}
-	if epEvents != 0 && fdEv.e {
-		epEvents |= syscall.EPOLLET & maxUint32
-	}
-	return epEvents
-}
-
 type epoll struct {
-	fd        int
-	fdEvs     map[int]*fdEvent
-	epollEvs  []syscall.EpollEvent
-	signalEvs map[int]*Event
-	signalFd0 int
-	signalFd1 int
-	signaler  *signaler
+	fd       int
+	fdEvs    map[int]*fdEvent
+	epollEvs []syscall.EpollEvent
 }
 
 func newEpoll() (*epoll, error) {
@@ -67,62 +34,24 @@ func newEpoll() (*epoll, error) {
 		return nil, err
 	}
 
-	signalFds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_SEQPACKET, 0)
-	if err != nil {
-		syscall.Close(fd)
-		return nil, err
-	}
-
-	err = syscall.EpollCtl(fd, syscall.EPOLL_CTL_ADD, signalFds[0], &syscall.EpollEvent{
-		Events: syscall.EPOLLIN,
-		Fd:     int32(signalFds[0]),
-	})
-	if err != nil {
-		syscall.Close(fd)
-		syscall.Close(signalFds[0])
-		syscall.Close(signalFds[1])
-		return nil, err
-	}
-
-	ep := &epoll{
-		fd:        fd,
-		fdEvs:     make(map[int]*fdEvent),
-		epollEvs:  make([]syscall.EpollEvent, initialNEvent),
-		signalEvs: map[int]*Event{},
-		signalFd0: signalFds[0],
-		signalFd1: signalFds[1],
-	}
-
-	ep.signaler = newSignaler(ep.triggerSignal)
-
-	return ep, nil
+	return &epoll{
+		fd:       fd,
+		fdEvs:    make(map[int]*fdEvent),
+		epollEvs: make([]syscall.EpollEvent, initialNEvent),
+	}, nil
 }
 
 func (ep *epoll) add(ev *Event) error {
-	if ev.events&EvSignal != 0 {
-		ep.signalEvs[ev.fd] = ev
-		return ep.signaler.add(ev.fd)
-	}
-
 	op := syscall.EPOLL_CTL_ADD
 	es, ok := ep.fdEvs[ev.fd]
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
 	} else {
-		es = &fdEvent{}
+		es = &fdEvent{list: newList()}
 		ep.fdEvs[ev.fd] = es
 	}
 
-	if ev.events&EvRead != 0 {
-		es.r = ev
-	}
-	if ev.events&EvWrite != 0 {
-		es.w = ev
-	}
-	if ev.events&EvClosed != 0 {
-		es.c = ev
-	}
-	es.e = ev.events&EvET != 0
+	es.add(ev)
 
 	epEv := &syscall.EpollEvent{Events: es.toEpollEvents()}
 
@@ -132,31 +61,20 @@ func (ep *epoll) add(ev *Event) error {
 }
 
 func (ep *epoll) del(ev *Event) error {
-	if ev.events&EvSignal != 0 {
-		delete(ep.signalEvs, ev.fd)
-		return ep.signaler.del(ev.fd)
-	}
-
 	es := ep.fdEvs[ev.fd]
 
-	if ev.events&EvRead != 0 {
-		es.r = nil
-	}
-	if ev.events&EvWrite != 0 {
-		es.w = nil
-	}
-	if ev.events&EvClosed != 0 {
-		es.c = nil
-	}
+	es.del(ev)
+
+	epEvs := es.toEpollEvents()
 
 	op := syscall.EPOLL_CTL_DEL
-	if es.toEpollEvents() == 0 {
+	if epEvs == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	epEv := &syscall.EpollEvent{Events: es.toEpollEvents()}
+	epEv := &syscall.EpollEvent{Events: epEvs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -170,45 +88,28 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 	}
 
 	for i := 0; i < n; i++ {
-		if ep.epollEvs[i].Fd == int32(ep.signalFd0) {
-			ep.onSignal(cb)
-			continue
-		}
-
-		var evRead, evWrite, evClosed *Event
+		which := uint32(0)
 		what := ep.epollEvs[i].Events
-		es := *(**fdEvent)(unsafe.Pointer(&ep.epollEvs[i].Fd))
 
 		if what&syscall.EPOLLERR != 0 {
-			evRead = es.r
-			evWrite = es.w
+			which |= EvRead | EvWrite
 		} else if what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0 {
-			evRead = es.r
-			evWrite = es.w
+			which |= EvRead | EvWrite
 		} else {
 			if what&syscall.EPOLLIN != 0 {
-				evRead = es.r
+				which |= EvRead
 			}
 			if what&syscall.EPOLLOUT != 0 {
-				evWrite = es.w
+				which |= EvWrite
 			}
 			if what&syscall.EPOLLRDHUP != 0 {
-				evClosed = es.c
+				which |= EvClosed
 			}
 		}
 
-		ET := uint32(0)
-		if es.e {
-			ET = EvET
-		}
-		if evRead != nil {
-			cb(evRead, EvRead|ET)
-		}
-		if evWrite != nil {
-			cb(evWrite, EvWrite|ET)
-		}
-		if evClosed != nil {
-			cb(evClosed, EvClosed|ET)
+		if which != 0 {
+			es := *(**fdEvent)(unsafe.Pointer(&ep.epollEvs[i].Fd))
+			es.active(which|EvET, cb)
 		}
 	}
 
@@ -220,29 +121,5 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 }
 
 func (ep *epoll) close() error {
-	ep.signaler.close()
-	if err := syscall.Close(ep.signalFd0); err != nil {
-		return err
-	}
-	if err := syscall.Close(ep.signalFd1); err != nil {
-		return err
-	}
-	if err := syscall.Close(ep.fd); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (ep *epoll) triggerSignal(signal int) {
-	syscall.Write(ep.signalFd1, []byte{byte(signal)})
-}
-
-func (ep *epoll) onSignal(cb func(ev *Event, res uint32)) {
-	buf := make([]byte, 1)
-	syscall.Read(ep.signalFd0, buf)
-	ev, ok := ep.signalEvs[int(buf[0])]
-	if !ok {
-		return
-	}
-	cb(ev, EvSignal)
+	return syscall.Close(ep.fd)
 }

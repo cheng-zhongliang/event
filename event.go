@@ -25,8 +25,6 @@ const (
 	EvWrite = 1 << iota
 	// EvTimeout is timeout event
 	EvTimeout = 1 << iota
-	// EvSignal is signal event.
-	EvSignal = 1 << iota
 	// EvClosed is closed event.
 	EvClosed = 1 << iota
 
@@ -59,9 +57,11 @@ const (
 // Event is the event to watch.
 type Event struct {
 	// ele is the element in the total event list.
-	ele eventListEle
+	ele element
 	// activeEle is the element in the active event list.
-	activeEle eventListEle
+	activeEle element
+	// fdEle is the element in the fd event list.
+	fdEle element
 	// index is the index in the event heap.
 	index int
 
@@ -125,6 +125,10 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.activeEle.prev = nil
 	ev.activeEle.list = nil
 	ev.activeEle.value = nil
+	ev.fdEle.next = nil
+	ev.fdEle.prev = nil
+	ev.fdEle.list = nil
+	ev.fdEle.value = nil
 }
 
 // EventBase is the base of all events.
@@ -132,9 +136,9 @@ type EventBase struct {
 	// poller is the event poller to watch events.
 	poller *epoll
 	// evList is the list of all events.
-	evList *eventList
+	evList *list
 	// activeEvList is the list of active events.
-	activeEvLists []*eventList
+	activeEvLists []*list
 	// eventHeap is the min heap of timeout events.
 	evHeap *eventHeap
 	// timeCache is the cache of now time.
@@ -150,8 +154,8 @@ func NewBase() (*EventBase, error) {
 
 	return &EventBase{
 		poller:        poller,
-		evList:        newEventList(),
-		activeEvLists: []*eventList{newEventList(), newEventList(), newEventList()},
+		evList:        newList(),
+		activeEvLists: []*list{newList(), newList(), newList()},
 		evHeap:        newEventHeap(),
 	}, nil
 }
@@ -160,7 +164,7 @@ func NewBase() (*EventBase, error) {
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the timeout is required.
 func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
-	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal|EvTimeout) == 0 {
+	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
 		return ErrEventInvalid
 	}
 
@@ -176,7 +180,7 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 
 	bs.eventQueueInsert(ev, evListInserted)
 
-	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
+	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
 		return bs.poller.add(ev)
 	}
 
@@ -199,7 +203,7 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 
 	bs.eventQueueRemove(ev, evListInserted)
 
-	if ev.events&(EvRead|EvWrite|EvClosed|EvSignal) != 0 {
+	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
 		return bs.poller.del(ev)
 	}
 
@@ -288,7 +292,7 @@ func (bs *EventBase) handleActiveEvents() {
 	for i := range bs.activeEvLists {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
-			ev := e.value
+			ev := e.value.(*Event)
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)
 			} else {

@@ -18,11 +18,6 @@ func main() {
 		panic(err)
 	}
 
-	exitEv := event.NewSignal(syscall.SIGINT, exit, base)
-	if err := base.AddEvent(exitEv, 0); err != nil {
-		panic(err)
-	}
-
 	if err := base.Dispatch(); err != nil && err != event.ErrBadFileDescriptor {
 		panic(err)
 	}
@@ -67,13 +62,6 @@ func echo(fd int, events uint32, arg interface{}) {
 		panic(err)
 	}
 	if _, err := syscall.Write(fd, buf[:n]); err != nil {
-		panic(err)
-	}
-}
-
-func exit(fd int, events uint32, arg interface{}) {
-	base := arg.(*event.EventBase)
-	if err := base.Exit(); err != nil {
 		panic(err)
 	}
 }
