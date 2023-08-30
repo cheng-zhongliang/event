@@ -2,6 +2,8 @@ package event
 
 import "syscall"
 
+const maxUint32 = 0xFFFFFFFF
+
 // fdEvent is the event of a file descriptor.
 type fdEvent struct {
 	list   *list

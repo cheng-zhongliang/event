@@ -19,7 +19,6 @@ import (
 const (
 	initialNEvent = 0x20
 	maxNEvent     = 0x1000
-	maxUint32     = 0xFFFFFFFF
 )
 
 type epoll struct {
