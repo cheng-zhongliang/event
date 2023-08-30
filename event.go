@@ -220,8 +220,6 @@ func (bs *EventBase) Loop(flags int) error {
 	for {
 		timeout := bs.waitTime(flags&EvLoopNoblock != 0)
 
-		bs.clearTimeCache()
-
 		err := bs.poller.polling(bs.onActive, timeout)
 		if err != nil {
 			return err
