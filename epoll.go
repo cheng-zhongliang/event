@@ -19,7 +19,76 @@ import (
 const (
 	initialNEvent = 0x20
 	maxNEvent     = 0x1000
+	maxUint32     = 0xFFFFFFFF
 )
+
+// fdEvent is the event of a file descriptor.
+type fdEvent struct {
+	list   *list
+	nread  uint8
+	nwrite uint8
+	nclose uint8
+	nET    uint8
+}
+
+func newFdEvent() *fdEvent {
+	return &fdEvent{list: newList()}
+}
+
+func (fdEv *fdEvent) add(ev *Event) {
+	fdEv.list.pushBack(ev, &ev.fdEle)
+	if ev.events&EvRead != 0 {
+		fdEv.nread++
+	}
+	if ev.events&EvWrite != 0 {
+		fdEv.nwrite++
+	}
+	if ev.events&EvClosed != 0 {
+		fdEv.nclose++
+	}
+	if ev.events&EvET != 0 {
+		fdEv.nET++
+	}
+}
+
+func (fdEv *fdEvent) del(ev *Event) {
+	fdEv.list.remove(&ev.fdEle)
+	if ev.events&EvRead != 0 {
+		fdEv.nread--
+	}
+	if ev.events&EvWrite != 0 {
+		fdEv.nwrite--
+	}
+	if ev.events&EvClosed != 0 {
+		fdEv.nclose--
+	}
+	if ev.events&EvET != 0 {
+		fdEv.nET--
+	}
+}
+
+func (fdEv *fdEvent) toEpollEvents() uint32 {
+	epEvents := uint32(0)
+	if fdEv.nread > 0 {
+		epEvents |= syscall.EPOLLIN
+	}
+	if fdEv.nwrite > 0 {
+		epEvents |= syscall.EPOLLOUT
+	}
+	if fdEv.nclose > 0 {
+		epEvents |= syscall.EPOLLRDHUP
+	}
+	if epEvents != 0 && fdEv.nET > 0 {
+		epEvents |= syscall.EPOLLET & maxUint32
+	}
+	return epEvents
+}
+
+func (fdEv *fdEvent) foreach(cb func(ev *Event)) {
+	for ele := fdEv.list.front(); ele != nil; ele = ele.nextEle() {
+		cb(ele.value.(*Event))
+	}
+}
 
 type epoll struct {
 	fd       int
@@ -108,7 +177,11 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 
 		if which != 0 {
 			es := *(**fdEvent)(unsafe.Pointer(&ep.epollEvs[i].Fd))
-			es.active(which|EvET, cb)
+			es.foreach(func(ev *Event) {
+				if ev.events&which != 0 {
+					cb(ev, ev.events&(which|EvET))
+				}
+			})
 		}
 	}
 
