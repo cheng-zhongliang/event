@@ -36,7 +36,6 @@ func newFdEvent() *fdEvent {
 }
 
 func (fdEv *fdEvent) add(ev *Event) {
-	fdEv.list.pushBack(ev, &ev.fdEle)
 	if ev.events&EvRead != 0 {
 		fdEv.nread++
 	}
@@ -49,10 +48,10 @@ func (fdEv *fdEvent) add(ev *Event) {
 	if ev.events&EvET != 0 {
 		fdEv.nET++
 	}
+	fdEv.list.pushBack(ev, &ev.fdEle)
 }
 
 func (fdEv *fdEvent) del(ev *Event) {
-	fdEv.list.remove(&ev.fdEle)
 	if ev.events&EvRead != 0 {
 		fdEv.nread--
 	}
@@ -65,6 +64,7 @@ func (fdEv *fdEvent) del(ev *Event) {
 	if ev.events&EvET != 0 {
 		fdEv.nET--
 	}
+	fdEv.list.remove(&ev.fdEle)
 }
 
 func (fdEv *fdEvent) toEpollEvents() uint32 {
