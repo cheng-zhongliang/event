@@ -14,7 +14,7 @@ package event
 type element struct {
 	next, prev *element
 	list       *list
-	value      interface{}
+	value      *Event
 }
 
 func (e *element) nextEle() *element {
@@ -44,7 +44,7 @@ func (l *list) front() *element {
 	return l.root.next
 }
 
-func (l *list) pushBack(v interface{}, e *element) {
+func (l *list) pushBack(v *Event, e *element) {
 	e.list = l
 	e.value = v
 	n := &l.root

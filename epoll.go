@@ -86,7 +86,7 @@ func (fdEv *fdEvent) toEpollEvents() uint32 {
 
 func (fdEv *fdEvent) foreach(cb func(ev *Event)) {
 	for ele := fdEv.list.front(); ele != nil; ele = ele.nextEle() {
-		cb(ele.value.(*Event))
+		cb(ele.value)
 	}
 }
 
