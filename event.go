@@ -193,13 +193,9 @@ func (bs *EventBase) DelEvent(ev *Event) error {
 		return ErrEventNotExists
 	}
 
-	if ev.flags&evListTimeout != 0 {
-		bs.eventQueueRemove(ev, evListTimeout)
-	}
+	bs.eventQueueRemove(ev, evListTimeout)
 
-	if ev.flags&evListActive != 0 {
-		bs.eventQueueRemove(ev, evListActive)
-	}
+	bs.eventQueueRemove(ev, evListActive)
 
 	bs.eventQueueRemove(ev, evListInserted)
 
@@ -307,7 +303,7 @@ func (bs *EventBase) handleActiveEvents() {
 }
 
 func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
-	if ev.flags&which != 0 && ev.flags&evListActive != 0 {
+	if ev.flags&which != 0 {
 		return
 	}
 
