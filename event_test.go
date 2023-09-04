@@ -182,7 +182,7 @@ func TestTimer(t *testing.T) {
 	}
 
 	n := 0
-	ev := New(-1, EvTimeout, func(fd int, events uint32, arg interface{}) {
+	ev := NewTimer(func(fd int, events uint32, arg interface{}) {
 		if events != EvTimeout {
 			t.Fatal("events not equal")
 		}
@@ -217,7 +217,7 @@ func TestTicker(t *testing.T) {
 	}
 
 	n := 0
-	ev := New(-1, EvTimeout|EvPersist, func(fd int, events uint32, arg interface{}) {
+	ev := NewTicker(func(fd int, events uint32, arg interface{}) {
 		if events != EvTimeout {
 			t.Fatal("events not equal")
 		}
