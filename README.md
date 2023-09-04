@@ -17,7 +17,7 @@
 
 `event` is a network I/O event notification library for Go. It uses [epoll](https://en.wikipedia.org/wiki/Epoll) to poll I/O events that is fast and low memory usage. It works in a similar manner as [libevent](https://github.com/libevent/libevent).
 
-The goal of `event` is to provide a `BASIC` tool for building high performance network applications.
+The goal of `event` is to provide a `BASIC` library for building high performance network applications.
 
 *Note: All development is done on a Raspberry Pi 4B.*
 
