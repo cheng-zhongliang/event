@@ -15,9 +15,6 @@ import (
 	"time"
 )
 
-// eventPriority is the priority of the event.
-type eventPriority uint8
-
 const (
 	// EvRead is readable event.
 	EvRead = 1 << iota
@@ -53,6 +50,9 @@ const (
 	// Do not block: see which events are ready now, run the callbacks, then exit.
 	EvLoopNoblock = 0x02
 )
+
+// eventPriority is the priority of the event.
+type eventPriority uint8
 
 // Event is the event to watch.
 type Event struct {
