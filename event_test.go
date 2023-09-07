@@ -453,7 +453,7 @@ func BenchmarkEventDel(b *testing.B) {
 }
 
 func BenchmarkEventLoop(b *testing.B) {
-	receiver := make([]int, b.N)
+	receivers := make([]int, b.N)
 	senders := make([]int, b.N)
 
 	base, err := NewBase()
@@ -469,7 +469,7 @@ func BenchmarkEventLoop(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		receiver[i] = fds[0]
+		receivers[i] = fds[0]
 		senders[i] = fds[1]
 
 		ev := New(fds[0], EvRead|EvPersist, func(fd int, events uint32, arg interface{}) {
@@ -497,7 +497,7 @@ func BenchmarkEventLoop(b *testing.B) {
 	b.StopTimer()
 
 	for i := 0; i < b.N; i++ {
-		syscall.Close(receiver[i])
+		syscall.Close(receivers[i])
 		syscall.Close(senders[i])
 	}
 
