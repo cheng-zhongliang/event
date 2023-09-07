@@ -7,7 +7,7 @@
 <a title="Codecov" target="_blank" href="https://codecov.io/gh/cheng-zhongliang/event"><img src="https://img.shields.io/codecov/c/github/cheng-zhongliang/event?logo=codecov" /></a>
 <a title="Go Report Card" target="_blank" href="https://goreportcard.com/report/github.com/cheng-zhongliang/event"><img src="https://goreportcard.com/badge/github.com/cheng-zhongliang/event" /></a>
 <a title="Doc for event" target="_blank" href="https://pkg.go.dev/github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go.dev-doc-007d9c?logo=read-the-docs" /></a>
-<a href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
+<a title="License" target="_blank" href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
 <a title="Release" target="_blank" href="https://github.com/cheng-zhongliang/event/releases"><img src="https://img.shields.io/github/v/release/cheng-zhongliang/event.svg?color=161823&logo=smartthings" /></a>
 <a title="Tag" target="_blank" href="https://github.com/cheng-zhongliang/event/tags"><img src="https://img.shields.io/github/v/tag/cheng-zhongliang/event?color=%23ff8936&logo=fitbit" /></a>
 <a title="Require Go Version" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-%3E%3D1.20-30dff3?logo=go" /></a>
