@@ -13,8 +13,8 @@ func main() {
 	}
 
 	fd := socket()
-	ev := event.New(fd, event.EvRead|event.EvPersist, accept, base)
-	if err := ev.Add(base, 0); err != nil {
+	ev := event.New(base, fd, event.EvRead|event.EvPersist, accept, base)
+	if err := ev.Add(0); err != nil {
 		panic(err)
 	}
 
@@ -49,8 +49,8 @@ func accept(fd int, events uint32, arg interface{}) {
 		panic(err)
 	}
 
-	ev := event.New(clientFd, event.EvRead|event.EvPersist, echo, nil)
-	if err := ev.Add(base, 0); err != nil {
+	ev := event.New(base, clientFd, event.EvRead|event.EvPersist, echo, nil)
+	if err := ev.Add(0); err != nil {
 		panic(err)
 	}
 }

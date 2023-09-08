@@ -56,6 +56,9 @@ type eventPriority uint8
 
 // Event is the event to watch.
 type Event struct {
+	// base is the event base of the event.
+	base *EventBase
+
 	// ele is the element in the total event list.
 	ele element
 	// activeEle is the element in the active event list.
@@ -87,14 +90,12 @@ type Event struct {
 
 	// priority is the priority of the event.
 	priority eventPriority
-
-	// base is the event base of the event.
-	base *EventBase
 }
 
 // New creates a new event.
-func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	return &Event{
+		base:     base,
 		fd:       fd,
 		events:   events,
 		cb:       callback,
@@ -109,7 +110,8 @@ func (ev *Event) SetPriority(priority eventPriority) {
 }
 
 // Assign assigns the event.
-func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
+func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
+	ev.base = base
 	ev.fd = fd
 	ev.events = events
 	ev.cb = callback
@@ -132,20 +134,16 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.fdEle.prev = nil
 	ev.fdEle.list = nil
 	ev.fdEle.value = nil
-	ev.base = nil
 }
 
 // Add adds the event to the event base.
-func (ev *Event) Add(base *EventBase, timeout time.Duration) error {
-	ev.base = base
-	return base.addEvent(ev, timeout)
+func (ev *Event) Add(timeout time.Duration) error {
+	return ev.base.addEvent(ev, timeout)
 }
 
 // Del deletes the event from the event base.
 func (ev *Event) Del() error {
-	base := ev.base
-	ev.base = nil
-	return base.delEvent(ev)
+	return ev.base.delEvent(ev)
 }
 
 // Base returns the event base of the event.
