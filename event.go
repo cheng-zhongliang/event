@@ -87,6 +87,9 @@ type Event struct {
 
 	// priority is the priority of the event.
 	priority eventPriority
+
+	// base is the event base of the event.
+	base *EventBase
 }
 
 // New creates a new event.
@@ -129,6 +132,25 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.fdEle.prev = nil
 	ev.fdEle.list = nil
 	ev.fdEle.value = nil
+	ev.base = nil
+}
+
+// Add adds the event to the event base.
+func (ev *Event) Add(base *EventBase, timeout time.Duration) error {
+	ev.base = base
+	return base.addEvent(ev, timeout)
+}
+
+// Del deletes the event from the event base.
+func (ev *Event) Del() error {
+	base := ev.base
+	ev.base = nil
+	return base.delEvent(ev)
+}
+
+// Base returns the event base of the event.
+func (ev *Event) Base() *EventBase {
+	return ev.base
 }
 
 // EventBase is the base of all events.
@@ -160,10 +182,10 @@ func NewBase() (*EventBase, error) {
 	}, nil
 }
 
-// AddEvent adds an event to the event base.
+// addEvent adds an event to the event base.
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the timeout is required.
-func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
+func (bs *EventBase) addEvent(ev *Event, timeout time.Duration) error {
 	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
 		return ErrEventInvalid
 	}
@@ -187,8 +209,8 @@ func (bs *EventBase) AddEvent(ev *Event, timeout time.Duration) error {
 	return nil
 }
 
-// DelEvent deletes an event from the event base.
-func (bs *EventBase) DelEvent(ev *Event) error {
+// delEvent deletes an event from the event base.
+func (bs *EventBase) delEvent(ev *Event) error {
 	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
 	}
@@ -288,7 +310,7 @@ func (bs *EventBase) handleActiveEvents() {
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)
 			} else {
-				bs.DelEvent(ev)
+				bs.delEvent(ev)
 			}
 			e = next
 

@@ -43,7 +43,7 @@ func TestAddEvent(t *testing.T) {
 
 	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
-	err = base.AddEvent(ev, 0)
+	err = ev.Add(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,12 +68,12 @@ func TestDelEvent(t *testing.T) {
 
 	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
-	err = base.AddEvent(ev, 0)
+	err = ev.Add(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = base.DelEvent(ev)
+	err = ev.Del()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestEventDispatch(t *testing.T) {
 		}
 	}, "hello")
 
-	err = base.AddEvent(ev, 0)
+	err = ev.Add(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestEventTimeout(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = base.AddEvent(ev, 10*time.Millisecond)
+	err = ev.Add(base, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestTimer(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = base.AddEvent(ev, 10*time.Millisecond)
+	err = ev.Add(base, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestTicker(t *testing.T) {
 		}
 	}, "hello")
 
-	err = base.AddEvent(ev, 5*time.Millisecond)
+	err = ev.Add(base, 5*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,12 +307,12 @@ func TestPriority(t *testing.T) {
 	}, "hello")
 	ev1.SetPriority(HPri)
 
-	err = base.AddEvent(ev0, 0)
+	err = ev0.Add(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = base.AddEvent(ev1, 0)
+	err = ev1.Add(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func TestEdgeTrigger(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = base.AddEvent(ev, 10*time.Millisecond)
+	err = ev.Add(base, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -395,7 +395,7 @@ func BenchmarkEventAdd(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
-		err = base.AddEvent(ev, 0)
+		err = ev.Add(base, 0)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -427,7 +427,7 @@ func BenchmarkEventDel(b *testing.B) {
 		receivers[i] = fds[0]
 
 		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
-		err = base.AddEvent(ev, 0)
+		err = ev.Add(base, 0)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -436,7 +436,7 @@ func BenchmarkEventDel(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = base.DelEvent(events[i])
+		err = events[i].Del()
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -476,7 +476,7 @@ func BenchmarkEventLoop(b *testing.B) {
 			syscall.Read(fd, buf)
 			fires++
 		}, nil)
-		err = base.AddEvent(ev, 0)
+		err = ev.Add(base, 0)
 		if err != nil {
 			b.Fatal(err)
 		}
