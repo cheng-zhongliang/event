@@ -180,42 +180,6 @@ func NewBase() (*EventBase, error) {
 	}, nil
 }
 
-// Loop loops events.
-// If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
-// If flags is EvLoopNoblock, it will not block. It will see which events are ready now,
-// run the callbacks, then exit.
-func (bs *EventBase) Loop(flags int) error {
-	bs.clearTimeCache()
-
-	for {
-		err := bs.poller.polling(bs.onActive, bs.waitTime(flags&EvLoopNoblock != 0))
-		if err != nil {
-			return err
-		}
-
-		bs.updateTimeCache()
-
-		bs.onTimeout()
-
-		bs.handleActiveEvents()
-
-		if flags&EvLoopOnce != 0 {
-			return nil
-		}
-	}
-}
-
-// Dispatch dispatches events.
-// It will block until events trigger.
-func (bs *EventBase) Dispatch() error {
-	return bs.Loop(0)
-}
-
-// Exit exit event loop.
-func (bs *EventBase) Exit() error {
-	return bs.poller.close()
-}
-
 // addEvent adds an event to the event base.
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the timeout is required.
@@ -260,6 +224,42 @@ func (bs *EventBase) delEvent(ev *Event) error {
 	}
 
 	return nil
+}
+
+// Loop loops events.
+// If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
+// If flags is EvLoopNoblock, it will not block. It will see which events are ready now,
+// run the callbacks, then exit.
+func (bs *EventBase) Loop(flags int) error {
+	bs.clearTimeCache()
+
+	for {
+		err := bs.poller.polling(bs.onActive, bs.waitTime(flags&EvLoopNoblock != 0))
+		if err != nil {
+			return err
+		}
+
+		bs.updateTimeCache()
+
+		bs.onTimeout()
+
+		bs.handleActiveEvents()
+
+		if flags&EvLoopOnce != 0 {
+			return nil
+		}
+	}
+}
+
+// Dispatch dispatches events.
+// It will block until events trigger.
+func (bs *EventBase) Dispatch() error {
+	return bs.Loop(0)
+}
+
+// Exit exit event loop.
+func (bs *EventBase) Exit() error {
+	return bs.poller.close()
 }
 
 func (bs *EventBase) waitTime(noblock bool) int {
