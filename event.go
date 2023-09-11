@@ -30,13 +30,6 @@ const (
 	// EvET is edge-triggered behavior option.
 	EvET = 0100
 
-	// evListInserted is the flag to indicate the event is in the event list.
-	evListInserted = 0x01
-	// evListActive is the flag to indicate the event is in the active event list.
-	evListActive = 0x02
-	// evListTimeout is the flag to indicate the event is in the timeout event heap.
-	evListTimeout = 0x04
-
 	// HPri is the high priority.
 	HPri eventPriority = 0b00
 	// MPri is the middle priority.
@@ -49,6 +42,13 @@ const (
 	EvLoopOnce = 0x01
 	// Do not block: see which events are ready now, run the callbacks, then exit.
 	EvLoopNoblock = 0x02
+
+	// evListInserted is the flag to indicate the event is in the event list.
+	evListInserted = 0x01
+	// evListActive is the flag to indicate the event is in the active event list.
+	evListActive = 0x02
+	// evListTimeout is the flag to indicate the event is in the timeout event heap.
+	evListTimeout = 0x04
 )
 
 // eventPriority is the priority of the event.
