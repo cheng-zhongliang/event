@@ -94,14 +94,9 @@ type Event struct {
 
 // New creates a new event.
 func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
-	return &Event{
-		base:     base,
-		fd:       fd,
-		events:   events,
-		cb:       callback,
-		arg:      arg,
-		priority: MPri,
-	}
+	ev := pool.Get().(*Event)
+	ev.Assign(base, fd, events, callback, arg, MPri)
+	return ev
 }
 
 // SetPriority sets the priority of the event.
@@ -149,6 +144,11 @@ func (ev *Event) Del() error {
 // Base returns the event base of the event.
 func (ev *Event) Base() *EventBase {
 	return ev.base
+}
+
+// Free frees the event.
+func (ev *Event) Free() {
+	pool.Put(ev)
 }
 
 // EventBase is the base of all events.
