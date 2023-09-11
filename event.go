@@ -148,6 +148,7 @@ func (ev *Event) Base() *EventBase {
 
 // Free frees the event.
 func (ev *Event) Free() {
+	ev.Del()
 	pool.Put(ev)
 }
 
