@@ -93,9 +93,9 @@ type Event struct {
 }
 
 // New creates a new event.
-func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	ev := pool.Get().(*Event)
-	ev.Assign(base, fd, events, callback, arg, MPri)
+	ev.Assign(fd, events, callback, arg, MPri)
 	return ev
 }
 
@@ -105,8 +105,7 @@ func (ev *Event) SetPriority(priority eventPriority) {
 }
 
 // Assign assigns the event.
-func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
-	ev.base = base
+func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
 	ev.fd = fd
 	ev.events = events
 	ev.cb = callback
@@ -131,14 +130,21 @@ func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd
 	ev.fdEle.value = nil
 }
 
-// Add adds the event to the event base.
-func (ev *Event) Add(timeout time.Duration) error {
-	return ev.base.addEvent(ev, timeout)
+// Attach adds the event to the event base.
+func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
+	ev.base = base
+	return base.addEvent(ev, timeout)
 }
 
-// Del deletes the event from the event base.
-func (ev *Event) Del() error {
+// Detach deletes the event from the event base.
+func (ev *Event) Detach() error {
 	return ev.base.delEvent(ev)
+}
+
+// Free frees the event.
+func (ev *Event) Free() {
+	ev.Detach()
+	pool.Put(ev)
 }
 
 // Base returns the event base of the event.
@@ -146,10 +152,24 @@ func (ev *Event) Base() *EventBase {
 	return ev.base
 }
 
-// Free frees the event.
-func (ev *Event) Free() {
-	ev.Del()
-	pool.Put(ev)
+// Fd returns the file descriptor of the event.
+func (ev *Event) Fd() int {
+	return ev.fd
+}
+
+// Events returns the events of the event.
+func (ev *Event) Events() uint32 {
+	return ev.events
+}
+
+// Timeout returns the timeout of the event.
+func (ev *Event) Timeout() time.Duration {
+	return ev.timeout
+}
+
+// Priority returns the priority of the event.
+func (ev *Event) Priority() eventPriority {
+	return ev.priority
 }
 
 // EventBase is the base of all events.

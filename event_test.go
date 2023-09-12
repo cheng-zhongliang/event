@@ -41,9 +41,9 @@ func TestAddEvent(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
-	err = ev.Add(0)
+	err = ev.Attach(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,14 +66,14 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
-	err = ev.Add(0)
+	err = ev.Attach(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ev.Del()
+	err = ev.Detach()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestEventDispatch(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
+	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r0) {
 			t.Fatal("fd not equal")
 		}
@@ -112,7 +112,7 @@ func TestEventDispatch(t *testing.T) {
 		}
 	}, "hello")
 
-	err = ev.Add(0)
+	err = ev.Attach(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestEventTimeout(t *testing.T) {
 	}
 
 	n := 0
-	ev := New(base, int(r0), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
+	ev := New(int(r0), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r0) {
 			t.Fatal("fd not equal")
 		}
@@ -158,7 +158,7 @@ func TestEventTimeout(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = ev.Add(10 * time.Millisecond)
+	err = ev.Attach(base, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestTimer(t *testing.T) {
 	}
 
 	n := 0
-	ev := NewTimer(base, func(fd int, events uint32, arg interface{}) {
+	ev := NewTimer(func(fd int, events uint32, arg interface{}) {
 		if events != EvTimeout {
 			t.Fatal("events not equal")
 		}
@@ -195,7 +195,7 @@ func TestTimer(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = ev.Add(10 * time.Millisecond)
+	err = ev.Attach(base, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func TestTicker(t *testing.T) {
 	}
 
 	n := 0
-	ev := NewTicker(base, func(fd int, events uint32, arg interface{}) {
+	ev := NewTicker(func(fd int, events uint32, arg interface{}) {
 		if events != EvTimeout {
 			t.Fatal("events not equal")
 		}
@@ -232,7 +232,7 @@ func TestTicker(t *testing.T) {
 		}
 	}, "hello")
 
-	err = ev.Add(5 * time.Millisecond)
+	err = ev.Attach(base, 5*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func TestPriority(t *testing.T) {
 	}
 
 	triggerTime0 := 0
-	ev0 := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
+	ev0 := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r0) {
 			t.Fatal("fd not equal")
 		}
@@ -292,7 +292,7 @@ func TestPriority(t *testing.T) {
 	}, "hello")
 
 	triggerTime1 := 0
-	ev1 := New(base, int(r1), EvRead, func(fd int, events uint32, arg interface{}) {
+	ev1 := New(int(r1), EvRead, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r1) {
 			t.Fatal("fd not equal")
 		}
@@ -307,12 +307,12 @@ func TestPriority(t *testing.T) {
 	}, "hello")
 	ev1.SetPriority(HPri)
 
-	err = ev0.Add(0)
+	err = ev0.Attach(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ev1.Add(0)
+	err = ev1.Attach(base, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestEdgeTrigger(t *testing.T) {
 	}
 
 	n := 0
-	ev := New(base, int(r0), EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
+	ev := New(int(r0), EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
 		if events&EvTimeout != 0 {
 			if err := base.Exit(); err != nil {
 				t.Fatal(err)
@@ -360,7 +360,7 @@ func TestEdgeTrigger(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = ev.Add(10 * time.Millisecond)
+	err = ev.Attach(base, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,8 +394,8 @@ func BenchmarkEventAdd(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ev := New(base, receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
-		err = ev.Add(0)
+		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+		err = ev.Attach(base, 0)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -426,8 +426,8 @@ func BenchmarkEventDel(b *testing.B) {
 		}
 		receivers[i] = fds[0]
 
-		ev := New(base, receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
-		err = ev.Add(0)
+		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+		err = ev.Attach(base, 0)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -436,7 +436,7 @@ func BenchmarkEventDel(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = events[i].Del()
+		err = events[i].Detach()
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -472,11 +472,11 @@ func BenchmarkEventLoop(b *testing.B) {
 		receivers[i] = fds[0]
 		senders[i] = fds[1]
 
-		ev := New(base, fds[0], EvRead|EvPersist, func(fd int, events uint32, arg interface{}) {
+		ev := New(fds[0], EvRead|EvPersist, func(fd int, events uint32, arg interface{}) {
 			syscall.Read(fd, buf)
 			fires++
 		}, nil)
-		err = ev.Add(0)
+		err = ev.Attach(base, 0)
 		if err != nil {
 			b.Fatal(err)
 		}
