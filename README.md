@@ -56,8 +56,8 @@ These events can be used in combination.
 
 ```go
 base := event.NewBase()
-ev := event.New(base, fd, event.EvRead|event.Timeout|event.EvPersist, callback, arg)
-ev.Add(time.Second)
+ev := event.New(fd, event.EvRead|event.Timeout|event.EvPersist, callback, arg)
+ev.Attach(base, time.Second)
 ```
 
 When the fd is readable or timeout expires, this event will be triggered.
@@ -68,8 +68,8 @@ The timer is a one-shot event that will be triggered after the timeout expires.
 
 ```go
 base := event.NewBase()
-ev := event.NewTimer(base, callback, arg)
-ev.Add(time.Second)
+ev := event.NewTimer(callback, arg)
+ev.Attach(base, time.Second)
 ```
 
 ### Ticker
@@ -78,8 +78,8 @@ The ticker is a repeating event that will be triggered every time the timeout ex
 
 ```go
 base := event.NewBase()
-ev := event.NewTicker(base, callback, arg)
-ev.Add(time.Second)
+ev := event.NewTicker(callback, arg)
+ev.Attach(base, time.Second)
 ```
 
 ### Priority
@@ -87,7 +87,7 @@ ev.Add(time.Second)
 When events are triggered together, high priority events will be dispatched first.
 
 ```go
-ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
+ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
 ev.SetPriority(event.High)
 ```
 
@@ -96,7 +96,7 @@ ev.SetPriority(event.High)
 The event is level-triggered by default. If you want to use edge-triggered, you can set the `EvET` flag.
 
 ```go
-ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
+ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
 ```
 
 ### Usage
@@ -119,8 +119,8 @@ func main() {
 	}
 
 	fd := socket()
-	ev := event.New(base, fd, event.EvRead|event.EvPersist, accept, base)
-	if err := ev.Add(0); err != nil {
+	ev := event.New(fd, event.EvRead|event.EvPersist, accept, base)
+	if err := ev.Attach(base, 0); err != nil {
 		panic(err)
 	}
 
@@ -155,8 +155,8 @@ func accept(fd int, events uint32, arg interface{}) {
 		panic(err)
 	}
 
-	ev := event.New(base, clientFd, event.EvRead|event.EvPersist, echo, nil)
-	if err := ev.Add(0); err != nil {
+	ev := event.New(clientFd, event.EvRead|event.EvPersist, echo, nil)
+	if err := ev.Attach(base, 0); err != nil {
 		panic(err)
 	}
 }
