@@ -88,7 +88,7 @@ When events are triggered together, high priority events will be dispatched firs
 
 ```go
 ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
-ev.SetPriority(event.High)
+ev.SetPriority(event.HPri)
 ```
 
 ### Edge-triggered
