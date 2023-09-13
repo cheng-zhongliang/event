@@ -99,11 +99,6 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 	return ev
 }
 
-// SetPriority sets the priority of the event.
-func (ev *Event) SetPriority(priority eventPriority) {
-	ev.priority = priority
-}
-
 // Assign assigns the event.
 func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
 	ev.fd = fd
@@ -170,6 +165,11 @@ func (ev *Event) Timeout() time.Duration {
 // Priority returns the priority of the event.
 func (ev *Event) Priority() eventPriority {
 	return ev.priority
+}
+
+// SetPriority sets the priority of the event.
+func (ev *Event) SetPriority(priority eventPriority) {
+	ev.priority = priority
 }
 
 // EventBase is the base of all events.
