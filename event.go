@@ -127,12 +127,25 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 
 // Attach adds the event to the event base.
 func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
+	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
+		return ErrEventInvalid
+	}
+
+	if ev.flags&evListInserted != 0 {
+		return ErrEventExists
+	}
+
 	ev.base = base
-	return base.addEvent(ev, timeout)
+	ev.timeout = timeout
+	return base.addEvent(ev)
 }
 
 // Detach deletes the event from the event base.
 func (ev *Event) Detach() error {
+	if ev.flags&evListInserted == 0 {
+		return ErrEventNotExists
+	}
+
 	return ev.base.delEvent(ev)
 }
 
@@ -204,18 +217,9 @@ func NewBase() (*EventBase, error) {
 // addEvent adds an event to the event base.
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the timeout is required.
-func (bs *EventBase) addEvent(ev *Event, timeout time.Duration) error {
-	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
-		return ErrEventInvalid
-	}
-
-	if ev.flags&evListInserted != 0 {
-		return ErrEventExists
-	}
-
-	if timeout > 0 {
-		ev.timeout = timeout
-		ev.deadline = bs.now().Add(timeout)
+func (bs *EventBase) addEvent(ev *Event) error {
+	if ev.events&EvTimeout != 0 {
+		ev.deadline = bs.now().Add(ev.timeout)
 		bs.eventQueueInsert(ev, evListTimeout)
 	}
 
@@ -230,10 +234,6 @@ func (bs *EventBase) addEvent(ev *Event, timeout time.Duration) error {
 
 // delEvent deletes an event from the event base.
 func (bs *EventBase) delEvent(ev *Event) error {
-	if ev.flags&evListInserted == 0 {
-		return ErrEventNotExists
-	}
-
 	bs.eventQueueRemove(ev, evListTimeout)
 
 	bs.eventQueueRemove(ev, evListActive)
