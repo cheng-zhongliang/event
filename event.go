@@ -100,6 +100,7 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 }
 
 // Assign assigns the event.
+// It is used to reuse the event.
 func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
 	ev.fd = fd
 	ev.events = events
@@ -126,6 +127,8 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 }
 
 // Attach adds the event to the event base.
+// Timeout is the timeout of the event. Default is 0, which means no timeout.
+// But if EvTimeout is set in the event, the 0 represents expired immediately.
 func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
 	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
 		return ErrEventInvalid
@@ -141,6 +144,8 @@ func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
 }
 
 // Detach deletes the event from the event base.
+// It will not free the event.
+// If you want to free the event, you should call Free.
 func (ev *Event) Detach() error {
 	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
@@ -150,6 +155,8 @@ func (ev *Event) Detach() error {
 }
 
 // Free frees the event.
+// First it will detach the event from the event base.
+// Then it will put the event to the event pool.
 func (ev *Event) Free() {
 	ev.Detach()
 	pool.Put(ev)
@@ -215,8 +222,6 @@ func NewBase() (*EventBase, error) {
 }
 
 // addEvent adds an event to the event base.
-// Timeout is the timeout of the event. Default is 0, which means no timeout.
-// But if EvTimeout is set in the event, the timeout is required.
 func (bs *EventBase) addEvent(ev *Event) error {
 	if ev.events&EvTimeout != 0 {
 		ev.deadline = bs.now().Add(ev.timeout)
