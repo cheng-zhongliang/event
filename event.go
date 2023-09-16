@@ -145,7 +145,6 @@ func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
 
 // Detach deletes the event from the event base.
 // It will not free the event.
-// If you want to free the event, you should call Free.
 func (ev *Event) Detach() error {
 	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
