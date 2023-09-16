@@ -124,6 +124,7 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.fdEle.prev = nil
 	ev.fdEle.list = nil
 	ev.fdEle.value = nil
+	ev.base = nil
 }
 
 // Attach adds the event to the event base.
