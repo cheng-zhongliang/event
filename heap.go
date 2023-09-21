@@ -11,28 +11,27 @@
 
 package event
 
-type heap []*Event
+type eventHeap []*Event
 
-func newEventHeap() *heap {
-	eh := &heap{}
-	return eh.init()
+func newEventHeap() *eventHeap {
+	return new(eventHeap).init()
 }
 
-func (eh heap) less(i, j int) bool {
+func (eh eventHeap) less(i, j int) bool {
 	return eh[i].deadline.Before(eh[j].deadline)
 }
 
-func (eh heap) swap(i, j int) {
+func (eh eventHeap) swap(i, j int) {
 	eh[i], eh[j] = eh[j], eh[i]
 	eh[i].index = i
 	eh[j].index = j
 }
 
-func (eh heap) len() int {
+func (eh eventHeap) len() int {
 	return len(eh)
 }
 
-func (eh heap) up(j int) {
+func (eh eventHeap) up(j int) {
 	for {
 		i := (j - 1) / 2
 		if i == j || !eh.less(j, i) {
@@ -43,7 +42,7 @@ func (eh heap) up(j int) {
 	}
 }
 
-func (eh heap) down(i0, n int) bool {
+func (eh eventHeap) down(i0, n int) bool {
 	i := i0
 	for {
 		j1 := 2*i + 1
@@ -63,13 +62,14 @@ func (eh heap) down(i0, n int) bool {
 	return i > i0
 }
 
-func (eh *heap) pushEvent(ev *Event) {
+func (eh *eventHeap) pushEvent(ev *Event) int {
 	*eh = append(*eh, ev)
 	ev.index = eh.len() - 1
 	eh.up(ev.index)
+	return ev.index
 }
 
-func (eh *heap) removeEvent(index int) {
+func (eh *eventHeap) removeEvent(index int) {
 	n := eh.len() - 1
 	if n != index {
 		eh.swap(index, n)
@@ -81,15 +81,15 @@ func (eh *heap) removeEvent(index int) {
 	*eh = (*eh)[:n]
 }
 
-func (eh *heap) peekEvent() *Event {
+func (eh *eventHeap) peekEvent() *Event {
 	return (*eh)[0]
 }
 
-func (eh *heap) empty() bool {
+func (eh *eventHeap) empty() bool {
 	return eh.len() == 0
 }
 
-func (eh *heap) init() *heap {
+func (eh *eventHeap) init() *eventHeap {
 	n := eh.len()
 	for i := n/2 - 1; i >= 0; i-- {
 		eh.down(i, n)

@@ -60,11 +60,11 @@ type Event struct {
 	base *EventBase
 
 	// ele is the element in the total event list.
-	ele element
+	ele *element
 	// activeEle is the element in the active event list.
-	activeEle element
+	activeEle *element
 	// fdEle is the element in the fd event list.
-	fdEle element
+	fdEle *element
 	// index is the index in the event heap.
 	index int
 
@@ -94,7 +94,7 @@ type Event struct {
 
 // New creates a new event.
 func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
-	ev := pool.Get().(*Event)
+	ev := new(Event)
 	ev.Assign(fd, events, callback, arg, MPri)
 	return ev
 }
@@ -107,23 +107,14 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.cb = callback
 	ev.arg = arg
 	ev.priority = priority
-	ev.index = -1
 	ev.res = 0
 	ev.flags = 0
-	ev.deadline = time.Time{}
 	ev.timeout = 0
-	ev.ele.next = nil
-	ev.ele.prev = nil
-	ev.ele.list = nil
-	ev.ele.value = nil
-	ev.activeEle.next = nil
-	ev.activeEle.prev = nil
-	ev.activeEle.list = nil
-	ev.activeEle.value = nil
-	ev.fdEle.next = nil
-	ev.fdEle.prev = nil
-	ev.fdEle.list = nil
-	ev.fdEle.value = nil
+	ev.deadline = time.Time{}
+	ev.ele = nil
+	ev.activeEle = nil
+	ev.fdEle = nil
+	ev.index = -1
 	ev.base = nil
 }
 
@@ -145,21 +136,12 @@ func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
 }
 
 // Detach deletes the event from the event base.
-// It will not free the event.
 func (ev *Event) Detach() error {
 	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
 	}
 
 	return ev.base.delEvent(ev)
-}
-
-// Free frees the event.
-// First it will detach the event from the event base.
-// Then it will put the event to the event pool.
-func (ev *Event) Free() {
-	ev.Detach()
-	pool.Put(ev)
 }
 
 // Base returns the event base of the event.
@@ -201,7 +183,7 @@ type EventBase struct {
 	// activeEvList is the list of active events.
 	activeEvLists []*list
 	// eventHeap is the min heap of timeout events.
-	evHeap *heap
+	evHeap *eventHeap
 	// nowCache is the cache of now time.
 	nowCache time.Time
 }
@@ -330,7 +312,7 @@ func (bs *EventBase) handleActiveEvents() {
 	for i := range bs.activeEvLists {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
-			ev := e.value
+			ev := e.value.(*Event)
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)
 			} else {
@@ -356,11 +338,11 @@ func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
 	ev.flags |= which
 	switch which {
 	case evListInserted:
-		bs.evList.pushBack(ev, &ev.ele)
+		ev.ele = bs.evList.pushBack(ev)
 	case evListActive:
-		bs.activeEvLists[ev.priority].pushBack(ev, &ev.activeEle)
+		ev.activeEle = bs.activeEvLists[ev.priority].pushBack(ev)
 	case evListTimeout:
-		bs.evHeap.pushEvent(ev)
+		ev.index = bs.evHeap.pushEvent(ev)
 	}
 }
 
@@ -372,9 +354,9 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 	ev.flags &^= which
 	switch which {
 	case evListInserted:
-		bs.evList.remove(&ev.ele)
+		bs.evList.remove(ev.ele)
 	case evListActive:
-		bs.activeEvLists[ev.priority].remove(&ev.activeEle)
+		bs.activeEvLists[ev.priority].remove(ev.activeEle)
 	case evListTimeout:
 		bs.evHeap.removeEvent(ev.index)
 	}
