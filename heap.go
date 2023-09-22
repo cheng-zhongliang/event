@@ -27,10 +27,6 @@ func (eh eventHeap) swap(i, j int) {
 	eh[j].index = j
 }
 
-func (eh eventHeap) len() int {
-	return len(eh)
-}
-
 func (eh eventHeap) up(j int) {
 	for {
 		i := (j - 1) / 2
@@ -64,20 +60,19 @@ func (eh eventHeap) down(i0, n int) bool {
 
 func (eh *eventHeap) pushEvent(ev *Event) int {
 	*eh = append(*eh, ev)
-	ev.index = eh.len() - 1
+	ev.index = len(*eh) - 1
 	eh.up(ev.index)
 	return ev.index
 }
 
 func (eh *eventHeap) removeEvent(index int) {
-	n := eh.len() - 1
+	n := len(*eh) - 1
 	if n != index {
 		eh.swap(index, n)
 		if !eh.down(index, n) {
 			eh.up(index)
 		}
 	}
-	(*eh)[n].index = -1
 	*eh = (*eh)[:n]
 }
 
@@ -86,11 +81,11 @@ func (eh *eventHeap) peekEvent() *Event {
 }
 
 func (eh *eventHeap) empty() bool {
-	return eh.len() == 0
+	return len(*eh) == 0
 }
 
 func (eh *eventHeap) init() *eventHeap {
-	n := eh.len()
+	n := len(*eh)
 	for i := n/2 - 1; i >= 0; i-- {
 		eh.down(i, n)
 	}

@@ -64,6 +64,5 @@ func (l *list) remove(e *element) {
 	e.next = nil
 	e.prev = nil
 	e.list = nil
-	e.value = nil
 	l.len--
 }
