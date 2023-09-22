@@ -25,10 +25,10 @@ const (
 	// EvClosed is closed event.
 	EvClosed = 1 << iota
 
-	// EvPersist is persistent option. If not set, the event will be deleted after it is triggered.
-	EvPersist = 040
+	// EvPersist is persistent behavior option.
+	EvPersist = 1 << iota
 	// EvET is edge-triggered behavior option.
-	EvET = 0100
+	EvET = 1 << iota
 
 	// HPri is the high priority.
 	HPri eventPriority = 0b00
@@ -37,11 +37,10 @@ const (
 	// LPri is the low priority.
 	LPri eventPriority = 0b10
 
-	// Block until we have an active event, then exit once all active events
-	// have had their callbacks run.
-	EvLoopOnce = 0x01
-	// Do not block: see which events are ready now, run the callbacks, then exit.
-	EvLoopNoblock = 0x02
+	// Just loop once, then exit at once.
+	EvLoopOnce = 001
+	// Loop without blocking.
+	EvLoopNoblock = 002
 
 	// evListInserted is the flag to indicate the event is in the event list.
 	evListInserted = 0x01
@@ -119,6 +118,7 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 }
 
 // Attach adds the event to the event base.
+// Base is the event base to add the event.
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the 0 represents expired immediately.
 func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
@@ -136,6 +136,7 @@ func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
 }
 
 // Detach deletes the event from the event base.
+// The event will not be triggered after it is detached.
 func (ev *Event) Detach() error {
 	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
@@ -200,6 +201,7 @@ func NewBase() (*EventBase, error) {
 		evList:        newList(),
 		activeEvLists: []*list{newList(), newList(), newList()},
 		evHeap:        newEventHeap(),
+		nowCache:      time.Time{},
 	}, nil
 }
 
@@ -236,8 +238,7 @@ func (bs *EventBase) delEvent(ev *Event) error {
 
 // Loop loops events.
 // If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
-// If flags is EvLoopNoblock, it will not block. It will see which events are ready now,
-// run the callbacks, then exit.
+// If flags is EvLoopNoblock, it will not block.
 func (bs *EventBase) Loop(flags int) error {
 	bs.clearTimeCache()
 
