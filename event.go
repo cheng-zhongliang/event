@@ -69,7 +69,7 @@ type Event struct {
 
 	// fd is the file descriptor to watch.
 	fd int
-	// events is the events to watch. It can be EvRead, EvWrite, etc.
+	// events is the events to watch. Such as EvRead or EvWrite.
 	events uint32
 
 	// cb is the callback function when the event is triggered.
@@ -79,7 +79,7 @@ type Event struct {
 
 	// res is the result passed to the callback function.
 	res uint32
-	// flags is the status of the event in the event list. It can be evListInserted or evListActive.
+	// flags is the status of the event in the event list.
 	flags int
 
 	// timeout is the timeout of the event.
