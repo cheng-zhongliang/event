@@ -37,9 +37,9 @@ const (
 	// LPri is the low priority.
 	LPri eventPriority = 0b10
 
-	// Just loop once, then exit at once.
+	// EvLoopOnce is the flag to control event base loop just once.
 	EvLoopOnce = 001
-	// Loop without blocking.
+	// EvLoopNoblock is the flag to control event base loop not block.
 	EvLoopNoblock = 002
 
 	// evListInserted is the flag to indicate the event is in the event list.
