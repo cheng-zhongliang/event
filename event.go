@@ -30,13 +30,6 @@ const (
 	// EvET is edge-triggered behavior option.
 	EvET = 1 << iota
 
-	// HPri is the high priority.
-	HPri eventPriority = 0b00
-	// MPri is the middle priority.
-	MPri eventPriority = 0b01
-	// LPri is the low priority.
-	LPri eventPriority = 0b10
-
 	// EvLoopOnce is the flag to control event base loop just once.
 	EvLoopOnce = 001
 	// EvLoopNoblock is the flag to control event base loop not block.
@@ -48,6 +41,13 @@ const (
 	evListActive = 0x02
 	// evListTimeout is the flag to indicate the event is in the timeout event heap.
 	evListTimeout = 0x04
+
+	// HPri is the high priority.
+	HPri eventPriority = 0b00
+	// MPri is the middle priority.
+	MPri eventPriority = 0b01
+	// LPri is the low priority.
+	LPri eventPriority = 0b10
 )
 
 // eventPriority is the priority of the event.
