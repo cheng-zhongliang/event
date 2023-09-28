@@ -73,9 +73,9 @@ type Event struct {
 	events uint32
 
 	// cb is the callback function when the event is triggered.
-	cb func(fd int, events uint32, arg interface{})
+	cb func(fd int, events uint32, arg any)
 	// arg is the argument passed to the callback function.
-	arg interface{}
+	arg any
 
 	// res is the result passed to the callback function.
 	res uint32
@@ -92,7 +92,7 @@ type Event struct {
 }
 
 // New creates a new event.
-func New(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
+func New(fd int, events uint32, callback func(fd int, events uint32, arg any), arg any) *Event {
 	ev := new(Event)
 	ev.Assign(fd, events, callback, arg, MPri)
 	return ev
@@ -100,7 +100,7 @@ func New(fd int, events uint32, callback func(fd int, events uint32, arg interfa
 
 // Assign assigns the event.
 // It is used to reuse the event.
-func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
+func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg any), arg any, priority eventPriority) {
 	ev.fd = fd
 	ev.events = events
 	ev.cb = callback
