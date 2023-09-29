@@ -51,9 +51,12 @@ func (ep *epoll) add(ev *Event) error {
 		ep.fdEvs[ev.fd] = es
 	}
 
-	es.add(ev)
+	evs, changed := es.add(ev)
+	if !changed {
+		return nil
+	}
 
-	epEv := &syscall.EpollEvent{Events: es.toEpollEvents()}
+	epEv := &syscall.EpollEvent{Events: evs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -63,18 +66,19 @@ func (ep *epoll) add(ev *Event) error {
 func (ep *epoll) del(ev *Event) error {
 	es := ep.fdEvs[ev.fd]
 
-	es.del(ev)
-
-	epEvs := es.toEpollEvents()
+	evs, changed := es.del(ev)
+	if !changed {
+		return nil
+	}
 
 	op := syscall.EPOLL_CTL_DEL
-	if epEvs == 0 {
+	if evs == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	epEv := &syscall.EpollEvent{Events: epEvs}
+	epEv := &syscall.EpollEvent{Events: evs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -141,7 +145,8 @@ func newFdEvent() *fdEvent {
 	return &fdEvent{list: newList()}
 }
 
-func (fdEv *fdEvent) add(ev *Event) {
+func (fdEv *fdEvent) add(ev *Event) (uint32, bool) {
+	oldEvs := fdEv.toEpollEvents()
 	if ev.events&EvRead != 0 {
 		fdEv.nread++
 	}
@@ -154,10 +159,13 @@ func (fdEv *fdEvent) add(ev *Event) {
 	if ev.events&EvET != 0 {
 		fdEv.nET++
 	}
+	newEvs := fdEv.toEpollEvents()
 	ev.fdEle = fdEv.list.pushBack(ev)
+	return newEvs, oldEvs != newEvs
 }
 
-func (fdEv *fdEvent) del(ev *Event) {
+func (fdEv *fdEvent) del(ev *Event) (uint32, bool) {
+	oldEvs := fdEv.toEpollEvents()
 	if ev.events&EvRead != 0 {
 		fdEv.nread--
 	}
@@ -170,7 +178,9 @@ func (fdEv *fdEvent) del(ev *Event) {
 	if ev.events&EvET != 0 {
 		fdEv.nET--
 	}
+	newEvs := fdEv.toEpollEvents()
 	fdEv.list.remove(ev.fdEle)
+	return newEvs, oldEvs != newEvs
 }
 
 func (fdEv *fdEvent) toEpollEvents() uint32 {
