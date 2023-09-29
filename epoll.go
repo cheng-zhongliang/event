@@ -159,8 +159,8 @@ func (fdEv *fdEvent) add(ev *Event) (uint32, bool) {
 	if ev.events&EvET != 0 {
 		fdEv.nET++
 	}
-	newEvs := fdEv.toEpollEvents()
 	ev.fdEle = fdEv.list.pushBack(ev)
+	newEvs := fdEv.toEpollEvents()
 	return newEvs, oldEvs != newEvs
 }
 
@@ -178,8 +178,8 @@ func (fdEv *fdEvent) del(ev *Event) (uint32, bool) {
 	if ev.events&EvET != 0 {
 		fdEv.nET--
 	}
-	newEvs := fdEv.toEpollEvents()
 	fdEv.list.remove(ev.fdEle)
+	newEvs := fdEv.toEpollEvents()
 	return newEvs, oldEvs != newEvs
 }
 
