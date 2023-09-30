@@ -51,12 +51,12 @@ func (ep *epoll) add(ev *Event) error {
 		ep.fdEvs[ev.fd] = es
 	}
 
-	evs, changed := es.add(ev)
+	changed := es.add(ev)
 	if !changed {
 		return nil
 	}
 
-	epEv := &syscall.EpollEvent{Events: evs}
+	epEv := &syscall.EpollEvent{Events: es.evs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -66,7 +66,7 @@ func (ep *epoll) add(ev *Event) error {
 func (ep *epoll) del(ev *Event) error {
 	es := ep.fdEvs[ev.fd]
 
-	evs, changed := es.del(ev)
+	changed := es.del(ev)
 	if !changed {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (ep *epoll) del(ev *Event) error {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	epEv := &syscall.EpollEvent{Events: evs}
+	epEv := &syscall.EpollEvent{Events: es.evs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
@@ -139,14 +139,15 @@ type fdEvent struct {
 	nwrite uint8
 	nclose uint8
 	nET    uint8
+	evs    uint32
 }
 
 func newFdEvent() *fdEvent {
 	return &fdEvent{list: newList()}
 }
 
-func (fdEv *fdEvent) add(ev *Event) (uint32, bool) {
-	oldEvs := fdEv.toEpollEvents()
+func (fdEv *fdEvent) add(ev *Event) bool {
+	oldEvs := fdEv.evs
 	if ev.events&EvRead != 0 {
 		fdEv.nread++
 	}
@@ -160,12 +161,12 @@ func (fdEv *fdEvent) add(ev *Event) (uint32, bool) {
 		fdEv.nET++
 	}
 	ev.fdEle = fdEv.list.pushBack(ev)
-	newEvs := fdEv.toEpollEvents()
-	return newEvs, oldEvs != newEvs
+	fdEv.toEpollEvents()
+	return oldEvs != fdEv.evs
 }
 
-func (fdEv *fdEvent) del(ev *Event) (uint32, bool) {
-	oldEvs := fdEv.toEpollEvents()
+func (fdEv *fdEvent) del(ev *Event) bool {
+	oldEvs := fdEv.evs
 	if ev.events&EvRead != 0 {
 		fdEv.nread--
 	}
@@ -179,25 +180,24 @@ func (fdEv *fdEvent) del(ev *Event) (uint32, bool) {
 		fdEv.nET--
 	}
 	fdEv.list.remove(ev.fdEle)
-	newEvs := fdEv.toEpollEvents()
-	return newEvs, oldEvs != newEvs
+	fdEv.toEpollEvents()
+	return oldEvs != fdEv.evs
 }
 
-func (fdEv *fdEvent) toEpollEvents() uint32 {
-	epEvents := uint32(0)
+func (fdEv *fdEvent) toEpollEvents() {
+	fdEv.evs = 0
 	if fdEv.nread > 0 {
-		epEvents |= syscall.EPOLLIN
+		fdEv.evs |= syscall.EPOLLIN
 	}
 	if fdEv.nwrite > 0 {
-		epEvents |= syscall.EPOLLOUT
+		fdEv.evs |= syscall.EPOLLOUT
 	}
 	if fdEv.nclose > 0 {
-		epEvents |= syscall.EPOLLRDHUP
+		fdEv.evs |= syscall.EPOLLRDHUP
 	}
 	if fdEv.nET > 0 {
-		epEvents |= syscall.EPOLLET & maxUint32
+		fdEv.evs |= syscall.EPOLLET & maxUint32
 	}
-	return epEvents
 }
 
 func (fdEv *fdEvent) foreach(cb func(ev *Event)) {
