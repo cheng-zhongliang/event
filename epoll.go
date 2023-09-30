@@ -72,7 +72,7 @@ func (ep *epoll) del(ev *Event) error {
 	}
 
 	op := syscall.EPOLL_CTL_DEL
-	if evs == 0 {
+	if es.evs == 0 {
 		delete(ep.fdEvs, ev.fd)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
