@@ -1,13 +1,9 @@
-/*
- * Copyright (c) 2023 cheng-zhongliang. All rights reserved.
- *
- * This source code is licensed under the 3-Clause BSD License, which can be
- * found in the accompanying "LICENSE" file, or at:
- * https://opensource.org/licenses/BSD-3-Clause
- *
- * By accessing, using, copying, modifying, or distributing this software,
- * you agree to the terms and conditions of the BSD 3-Clause License.
- */
+//go:build linux
+// +build linux
+
+// Copyright (c) 2023 cheng-zhongliang. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package event
 
@@ -22,13 +18,13 @@ const (
 	maxUint32     = 0xFFFFFFFF
 )
 
-type epoll struct {
+type poller struct {
 	fd       int
 	fdEvs    map[int]*fdEvent
 	epollEvs []syscall.EpollEvent
 }
 
-func newEpoll() (*epoll, error) {
+func newPoller() (*poller, error) {
 	fd, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return nil, err
@@ -41,7 +37,7 @@ func newEpoll() (*epoll, error) {
 	}, nil
 }
 
-func (ep *epoll) add(ev *Event) error {
+func (ep *poller) add(ev *Event) error {
 	op := syscall.EPOLL_CTL_ADD
 	es, ok := ep.fdEvs[ev.fd]
 	if ok {
@@ -63,7 +59,7 @@ func (ep *epoll) add(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-func (ep *epoll) del(ev *Event) error {
+func (ep *poller) del(ev *Event) error {
 	es := ep.fdEvs[ev.fd]
 
 	changed := es.del(ev)
@@ -85,7 +81,7 @@ func (ep *epoll) del(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
+func (ep *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
 	n, err := syscall.EpollWait(ep.fd, ep.epollEvs, timeout)
 	if err != nil && !temporaryErr(err) {
 		return err
@@ -128,7 +124,7 @@ func (ep *epoll) polling(cb func(ev *Event, res uint32), timeout int) error {
 	return nil
 }
 
-func (ep *epoll) close() error {
+func (ep *poller) close() error {
 	return syscall.Close(ep.fd)
 }
 
