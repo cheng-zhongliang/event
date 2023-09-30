@@ -96,7 +96,7 @@ func (ep *poller) del(ev *Event) error {
 	}
 	if ev.events&EvET != 0 {
 		if es.et--; es.et == 0 {
-			es.evs &^= syscall.EPOLLET
+			es.evs &^= syscall.EPOLLET & maxUint32
 		}
 	}
 
@@ -159,4 +159,8 @@ func (ep *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
 	}
 
 	return nil
+}
+
+func (ep *poller) close() error {
+	return syscall.Close(ep.fd)
 }
