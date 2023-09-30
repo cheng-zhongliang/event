@@ -65,12 +65,14 @@ func (kp *poller) del(ev *Event) error {
 		kp.changes = append(kp.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_READ,
+			Flags:  syscall.EV_DELETE,
 		})
 	}
 	if ev.events&EvWrite != 0 {
 		kp.changes = append(kp.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_WRITE,
+			Flags:  syscall.EV_DELETE,
 		})
 	}
 	return nil
@@ -86,10 +88,10 @@ func (kp *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
 
 	for i := 0; i < n; i++ {
 		which := uint32(0)
-
+		what := kp.events[i].Filter
 		ev := (*Event)(unsafe.Pointer(kp.events[i].Udata))
 
-		switch kp.events[i].Filter {
+		switch what {
 		case syscall.EVFILT_READ:
 			which |= EvRead
 		case syscall.EVFILT_WRITE:
@@ -100,7 +102,7 @@ func (kp *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
 	}
 
 	if n == len(kp.events) && n < maxNEvent {
-		kp.events = make([]syscall.Kevent_t, n*2)
+		kp.events = make([]syscall.Kevent_t, n<<1)
 	}
 
 	return nil

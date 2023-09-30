@@ -55,8 +55,6 @@ type Event struct {
 	ele *element
 	// activeEle is the element in the active event list.
 	activeEle *element
-	// fdEle is the element in the fd event list.
-	fdEle *element
 	// index is the index in the event heap.
 	index int
 
@@ -105,7 +103,6 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.deadline = time.Time{}
 	ev.ele = nil
 	ev.activeEle = nil
-	ev.fdEle = nil
 	ev.index = -1
 	ev.base = nil
 }
