@@ -36,13 +36,13 @@ func newPoller() (*poller, error) {
 	}, nil
 }
 
-func (kp *poller) add(ev *Event) error {
+func (kq *poller) add(ev *Event) error {
 	ET := uint16(0)
 	if ev.events&EvET != 0 {
 		ET = syscall.EV_CLEAR
 	}
 	if ev.events&EvRead != 0 {
-		kp.changes = append(kp.changes, syscall.Kevent_t{
+		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_READ,
 			Flags:  syscall.EV_ADD | syscall.EV_ENABLE | ET,
@@ -50,7 +50,7 @@ func (kp *poller) add(ev *Event) error {
 		})
 	}
 	if ev.events&EvWrite != 0 {
-		kp.changes = append(kp.changes, syscall.Kevent_t{
+		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_WRITE,
 			Flags:  syscall.EV_ADD | syscall.EV_ENABLE | ET,
@@ -60,16 +60,16 @@ func (kp *poller) add(ev *Event) error {
 	return nil
 }
 
-func (kp *poller) del(ev *Event) error {
+func (kq *poller) del(ev *Event) error {
 	if ev.events&EvRead != 0 {
-		kp.changes = append(kp.changes, syscall.Kevent_t{
+		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_READ,
 			Flags:  syscall.EV_DELETE,
 		})
 	}
 	if ev.events&EvWrite != 0 {
-		kp.changes = append(kp.changes, syscall.Kevent_t{
+		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_WRITE,
 			Flags:  syscall.EV_DELETE,
@@ -78,18 +78,18 @@ func (kp *poller) del(ev *Event) error {
 	return nil
 }
 
-func (kp *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
-	n, err := syscall.Kevent(kp.fd, kp.changes, kp.events, nil)
+func (kq *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
+	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, nil)
 	if err != nil && !temporaryErr(err) {
 		return err
 	}
 
-	kp.changes = kp.changes[:0]
+	kq.changes = kq.changes[:0]
 
 	for i := 0; i < n; i++ {
 		which := uint32(0)
-		what := kp.events[i].Filter
-		ev := (*Event)(unsafe.Pointer(kp.events[i].Udata))
+		what := kq.events[i].Filter
+		ev := (*Event)(unsafe.Pointer(kq.events[i].Udata))
 
 		switch what {
 		case syscall.EVFILT_READ:
@@ -101,13 +101,13 @@ func (kp *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
 		cb(ev, which)
 	}
 
-	if n == len(kp.events) && n < maxNEvent {
-		kp.events = make([]syscall.Kevent_t, n<<1)
+	if n == len(kq.events) && n < maxNEvent {
+		kq.events = make([]syscall.Kevent_t, n<<1)
 	}
 
 	return nil
 }
 
-func (kp *poller) close() error {
-	return syscall.Close(kp.fd)
+func (kq *poller) close() error {
+	return syscall.Close(kq.fd)
 }
