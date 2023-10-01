@@ -46,7 +46,7 @@ func (kq *poller) add(ev *Event) error {
 		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_READ,
-			Flags:  syscall.EV_ADD | syscall.EV_ENABLE | ET,
+			Flags:  syscall.EV_ADD | ET,
 			Udata:  (*byte)(unsafe.Pointer(ev)),
 		})
 	}
@@ -54,7 +54,7 @@ func (kq *poller) add(ev *Event) error {
 		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
 			Filter: syscall.EVFILT_WRITE,
-			Flags:  syscall.EV_ADD | syscall.EV_ENABLE | ET,
+			Flags:  syscall.EV_ADD | ET,
 			Udata:  (*byte)(unsafe.Pointer(ev)),
 		})
 	}
