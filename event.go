@@ -261,14 +261,14 @@ func (bs *EventBase) Exit() error {
 	return bs.poller.close()
 }
 
-func (bs *EventBase) waitTime(noblock bool) int {
+func (bs *EventBase) waitTime(noblock bool) time.Duration {
 	if noblock {
 		return 0
 	}
 	if !bs.evHeap.empty() {
 		ev := bs.evHeap.peekEvent()
 		if d := ev.deadline.Sub(bs.now()); d > 0 {
-			return int(d.Milliseconds())
+			return d
 		}
 		return 0
 	}

@@ -9,6 +9,7 @@ package event
 
 import (
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -114,8 +115,8 @@ func (ep *poller) del(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
 }
 
-func (ep *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
-	n, err := syscall.EpollWait(ep.fd, ep.events, timeout)
+func (ep *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration) error {
+	n, err := syscall.EpollWait(ep.fd, ep.events, int(timeout.Milliseconds()))
 	if err != nil && !temporaryErr(err) {
 		return err
 	}

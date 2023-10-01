@@ -9,6 +9,7 @@ package event
 
 import (
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -78,8 +79,9 @@ func (kq *poller) del(ev *Event) error {
 	return nil
 }
 
-func (kq *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
-	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, nil)
+func (kq *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration) error {
+	timespec := syscall.NsecToTimespec(timeout.Nanoseconds())
+	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, &timespec)
 	if err != nil && !temporaryErr(err) {
 		return err
 	}
@@ -98,7 +100,7 @@ func (kq *poller) polling(cb func(ev *Event, res uint32), timeout int) error {
 			which |= EvWrite
 		}
 
-		cb(ev, which)
+		cb(ev, ev.events&(which|EvET))
 	}
 
 	if n == len(kq.events) && n < maxNEvent {
