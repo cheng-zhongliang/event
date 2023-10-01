@@ -88,14 +88,20 @@ func (kq *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration)
 	kq.changes = kq.changes[:0]
 
 	for i := 0; i < n; i++ {
+		if flags := kq.events[i].Flags; flags&syscall.EV_ERROR != 0 {
+			if flags&uint16(syscall.EBADF|syscall.ENOENT|syscall.EINVAL) != 0 {
+				continue
+			}
+			return syscall.Errno(kq.events[i].Data)
+		}
+
 		which := uint32(0)
 		what := kq.events[i].Filter
 		ev := (*Event)(unsafe.Pointer(kq.events[i].Udata))
 
-		switch what {
-		case syscall.EVFILT_READ:
+		if what&syscall.EVFILT_READ != 0 {
 			which |= EvRead
-		case syscall.EVFILT_WRITE:
+		} else if what&syscall.EVFILT_WRITE != 0 {
 			which |= EvWrite
 		}
 
