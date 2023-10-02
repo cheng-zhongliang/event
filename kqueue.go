@@ -89,8 +89,8 @@ func (kq *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration)
 
 	for i := 0; i < n; i++ {
 		flags := kq.events[i].Flags
-		data := syscall.Errno(kq.events[i].Data)
 		if flags&syscall.EV_ERROR != 0 {
+			data := syscall.Errno(kq.events[i].Data)
 			if data&(syscall.EBADF|syscall.ENOENT|syscall.EINVAL) != 0 {
 				continue
 			}
