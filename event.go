@@ -195,37 +195,6 @@ func NewBase() (*EventBase, error) {
 	}, nil
 }
 
-// addEvent adds an event to the event base.
-func (bs *EventBase) addEvent(ev *Event) error {
-	if ev.events&EvTimeout != 0 {
-		ev.deadline = bs.now().Add(ev.timeout)
-		bs.eventQueueInsert(ev, evListTimeout)
-	}
-
-	bs.eventQueueInsert(ev, evListInserted)
-
-	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
-		return bs.poller.add(ev)
-	}
-
-	return nil
-}
-
-// delEvent deletes an event from the event base.
-func (bs *EventBase) delEvent(ev *Event) error {
-	bs.eventQueueRemove(ev, evListTimeout)
-
-	bs.eventQueueRemove(ev, evListActive)
-
-	bs.eventQueueRemove(ev, evListInserted)
-
-	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
-		return bs.poller.del(ev)
-	}
-
-	return nil
-}
-
 // Loop loops events.
 // If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
 // If flags is EvLoopNoblock, it will not block.
@@ -259,6 +228,37 @@ func (bs *EventBase) Dispatch() error {
 // Exit exit event loop.
 func (bs *EventBase) Exit() error {
 	return bs.poller.close()
+}
+
+// addEvent adds an event to the event base.
+func (bs *EventBase) addEvent(ev *Event) error {
+	if ev.events&EvTimeout != 0 {
+		ev.deadline = bs.now().Add(ev.timeout)
+		bs.eventQueueInsert(ev, evListTimeout)
+	}
+
+	bs.eventQueueInsert(ev, evListInserted)
+
+	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
+		return bs.poller.add(ev)
+	}
+
+	return nil
+}
+
+// delEvent deletes an event from the event base.
+func (bs *EventBase) delEvent(ev *Event) error {
+	bs.eventQueueRemove(ev, evListTimeout)
+
+	bs.eventQueueRemove(ev, evListActive)
+
+	bs.eventQueueRemove(ev, evListInserted)
+
+	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
+		return bs.poller.del(ev)
+	}
+
+	return nil
 }
 
 func (bs *EventBase) waitTime(noblock bool) time.Duration {
