@@ -6,10 +6,6 @@ package event
 
 type eventHeap []*Event
 
-func newEventHeap() *eventHeap {
-	return new(eventHeap)
-}
-
 func (eh eventHeap) less(i, j int) bool {
 	return eh[i].deadline.Before(eh[j].deadline)
 }
@@ -81,12 +77,4 @@ func (eh *eventHeap) peekEvent() *Event {
 
 func (eh *eventHeap) empty() bool {
 	return len(*eh) == 0
-}
-
-func (eh *eventHeap) init() *eventHeap {
-	n := len(*eh)
-	for i := n/4 - 1; i >= 0; i-- {
-		eh.down(i, n)
-	}
-	return eh
 }

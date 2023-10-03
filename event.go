@@ -189,7 +189,7 @@ func NewBase() (*EventBase, error) {
 		poller:        poller,
 		evList:        newList(),
 		activeEvLists: []*list{newList(), newList(), newList()},
-		evHeap:        newEventHeap(),
+		evHeap:        new(eventHeap),
 		nowCache:      time.Time{},
 	}, nil
 }
