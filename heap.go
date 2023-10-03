@@ -7,7 +7,7 @@ package event
 type eventHeap []*Event
 
 func newEventHeap() *eventHeap {
-	return new(eventHeap).init()
+	return new(eventHeap)
 }
 
 func (eh eventHeap) less(i, j int) bool {
@@ -22,7 +22,7 @@ func (eh eventHeap) swap(i, j int) {
 
 func (eh eventHeap) up(j int) {
 	for {
-		i := (j - 1) / 2
+		i := (j - 1) / 4
 		if i == j || !eh.less(j, i) {
 			break
 		}
@@ -34,13 +34,19 @@ func (eh eventHeap) up(j int) {
 func (eh eventHeap) down(i0, n int) bool {
 	i := i0
 	for {
-		j1 := 2*i + 1
+		j1 := 4*i + 1
 		if j1 >= n {
 			break
 		}
 		j := j1
 		if j2 := j1 + 1; j2 < n && eh.less(j2, j1) {
 			j = j2
+		}
+		if j3 := j1 + 2; j3 < n && eh.less(j3, j) {
+			j = j3
+		}
+		if j4 := j1 + 3; j4 < n && eh.less(j4, j) {
+			j = j4
 		}
 		if !eh.less(j, i) {
 			break
@@ -79,7 +85,7 @@ func (eh *eventHeap) empty() bool {
 
 func (eh *eventHeap) init() *eventHeap {
 	n := len(*eh)
-	for i := n/2 - 1; i >= 0; i-- {
+	for i := n/4 - 1; i >= 0; i-- {
 		eh.down(i, n)
 	}
 	return eh
