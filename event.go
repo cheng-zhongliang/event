@@ -83,15 +83,16 @@ type Event struct {
 }
 
 // New creates a new event.
-func New(fd int, events uint32, callback func(fd int, events uint32, arg any), arg any) *Event {
+func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg any), arg any) *Event {
 	ev := new(Event)
-	ev.Assign(fd, events, callback, arg, MPri)
+	ev.Assign(base, fd, events, callback, arg, MPri)
 	return ev
 }
 
 // Assign assigns the event.
 // It is used to reuse the event.
-func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint32, arg any), arg any, priority eventPriority) {
+func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg any), arg any, priority eventPriority) {
+	ev.base = base
 	ev.fd = fd
 	ev.events = events
 	ev.cb = callback
@@ -104,14 +105,12 @@ func (ev *Event) Assign(fd int, events uint32, callback func(fd int, events uint
 	ev.ele = nil
 	ev.activeEle = nil
 	ev.index = -1
-	ev.base = nil
 }
 
 // Attach adds the event to the event base.
-// Base is the event base to add the event.
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the 0 represents expired immediately.
-func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
+func (ev *Event) Attach(timeout time.Duration) error {
 	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
 		return ErrEventInvalid
 	}
@@ -120,9 +119,9 @@ func (ev *Event) Attach(base *EventBase, timeout time.Duration) error {
 		return ErrEventExists
 	}
 
-	ev.base = base
 	ev.timeout = timeout
-	return base.addEvent(ev)
+
+	return ev.base.addEvent(ev)
 }
 
 // Detach deletes the event from the event base.
