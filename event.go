@@ -13,7 +13,7 @@ const (
 	EvRead = 1 << iota
 	// EvWrite is writable event.
 	EvWrite = 1 << iota
-	// EvTimeout is timeout event
+	// EvTimeout is timeout event.
 	EvTimeout = 1 << iota
 	// EvClosed is closed event.
 	EvClosed = 1 << iota
@@ -174,8 +174,8 @@ type EventBase struct {
 	activeEvLists []*list
 	// eventHeap is the min heap of timeout events.
 	evHeap *eventHeap
-	// nowCache is the cache of now time.
-	nowCache time.Time
+	// nowTimeCache is the cache of now time.
+	nowTimeCache time.Time
 }
 
 // NewBase creates a new event base.
@@ -190,7 +190,7 @@ func NewBase() (*EventBase, error) {
 		evList:        newList(),
 		activeEvLists: []*list{newList(), newList(), newList()},
 		evHeap:        new(eventHeap),
-		nowCache:      time.Time{},
+		nowTimeCache:  time.Time{},
 	}, nil
 }
 
@@ -353,16 +353,16 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 }
 
 func (bs *EventBase) now() time.Time {
-	if !bs.nowCache.IsZero() {
-		return bs.nowCache
+	if !bs.nowTimeCache.IsZero() {
+		return bs.nowTimeCache
 	}
 	return time.Now()
 }
 
 func (bs *EventBase) updateTimeCache() {
-	bs.nowCache = time.Now()
+	bs.nowTimeCache = time.Now()
 }
 
 func (bs *EventBase) clearTimeCache() {
-	bs.nowCache = time.Time{}
+	bs.nowTimeCache = time.Time{}
 }
