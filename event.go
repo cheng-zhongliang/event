@@ -301,16 +301,15 @@ func (bs *EventBase) handleActiveEvents() {
 			ev := e.value.(*Event)
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)
-				bs.eventQueueRemove(ev, evListTimeout)
+				if ev.events&EvTimeout != 0 {
+					bs.eventQueueRemove(ev, evListTimeout)
+					ev.deadline = bs.now().Add(ev.timeout)
+					bs.eventQueueInsert(ev, evListTimeout)
+				}
 			} else {
 				bs.delEvent(ev)
 			}
 			e = next
-
-			if ev.events&EvTimeout != 0 && ev.events&EvPersist != 0 {
-				ev.deadline = bs.now().Add(ev.timeout)
-				bs.eventQueueInsert(ev, evListTimeout)
-			}
 
 			ev.cb(ev.fd, ev.res, ev.arg)
 		}
