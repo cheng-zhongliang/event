@@ -109,7 +109,7 @@ func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd
 // Timeout is the timeout of the event. Default is 0, which means no timeout.
 // But if EvTimeout is set in the event, the 0 represents expired immediately.
 func (ev *Event) Attach(timeout time.Duration) error {
-	if ev.events&(EvRead|EvWrite|EvClosed|EvTimeout) == 0 {
+	if ev.events&(EvRead|EvWrite|EvTimeout) == 0 {
 		return ErrEventInvalid
 	}
 
@@ -236,7 +236,7 @@ func (bs *EventBase) addEvent(ev *Event) error {
 
 	bs.eventQueueInsert(ev, evListInserted)
 
-	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
+	if ev.events&(EvRead|EvWrite) != 0 {
 		return bs.poller.add(ev)
 	}
 
@@ -251,7 +251,7 @@ func (bs *EventBase) delEvent(ev *Event) error {
 
 	bs.eventQueueRemove(ev, evListInserted)
 
-	if ev.events&(EvRead|EvWrite|EvClosed) != 0 {
+	if ev.events&(EvRead|EvWrite) != 0 {
 		return bs.poller.del(ev)
 	}
 
