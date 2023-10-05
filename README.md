@@ -44,7 +44,6 @@ $ go get -u github.com/cheng-zhongliang/event
 
 - `EvRead` fires when the fd is readable.
 - `EvWrite` fires when the fd is writable.
-- `EvClosed` fires when the connection has closed.
 - `EvTimeout` fires when the timeout expires.
 - `EvPersist` __if not set, the event will be deleted after it is triggered.__
 
@@ -56,8 +55,8 @@ These events can be used in combination.
 
 ```go
 base := event.NewBase()
-ev := event.New(fd, event.EvRead|event.Timeout|event.EvPersist, callback, arg)
-ev.Attach(base, time.Second)
+ev := event.New(base, fd, event.EvRead|event.Timeout|event.EvPersist, callback, arg)
+ev.Attach(time.Second)
 ```
 
 When the fd is readable or timeout expires, this event will be triggered.
@@ -68,8 +67,8 @@ The timer is a one-shot event that will be triggered after the timeout expires.
 
 ```go
 base := event.NewBase()
-ev := event.NewTimer(callback, arg)
-ev.Attach(base, time.Second)
+ev := event.NewTimer(base, callback, arg)
+ev.Attach(time.Second)
 ```
 
 ### Ticker
@@ -78,8 +77,8 @@ The ticker is a repeating event that will be triggered every time the timeout ex
 
 ```go
 base := event.NewBase()
-ev := event.NewTicker(callback, arg)
-ev.Attach(base, time.Second)
+ev := event.NewTicker(base, callback, arg)
+ev.Attach(time.Second)
 ```
 
 ### Priority
@@ -87,7 +86,7 @@ ev.Attach(base, time.Second)
 When events are triggered together, high priority events will be dispatched first.
 
 ```go
-ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
+ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
 ev.SetPriority(event.HPri)
 ```
 
@@ -96,7 +95,7 @@ ev.SetPriority(event.HPri)
 The event is level-triggered by default. If you want to use edge-triggered, you can set the `EvET` flag.
 
 ```go
-ev := event.New(fd, event.EvRead|event.EvET, callback, arg)
+ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
 ```
 
 ### Usage

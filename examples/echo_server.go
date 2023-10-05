@@ -13,8 +13,8 @@ func main() {
 	}
 
 	fd := socket()
-	ev := event.New(fd, event.EvRead|event.EvPersist, accept, base)
-	if err := ev.Attach(base, 0); err != nil {
+	ev := event.New(base, fd, event.EvRead|event.EvPersist, accept, base)
+	if err := ev.Attach(0); err != nil {
 		panic(err)
 	}
 
@@ -27,7 +27,7 @@ func main() {
 
 func socket() int {
 	addr := syscall.SockaddrInet4{Port: 1246, Addr: [4]byte{0, 0, 0, 0}}
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM|syscall.SOCK_NONBLOCK, syscall.IPPROTO_TCP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
 	if err != nil {
 		panic(err)
 	}
@@ -49,8 +49,8 @@ func accept(fd int, events uint32, arg interface{}) {
 		panic(err)
 	}
 
-	ev := event.New(clientFd, event.EvRead|event.EvPersist, echo, nil)
-	if err := ev.Attach(base, 0); err != nil {
+	ev := event.New(base, clientFd, event.EvRead|event.EvPersist, echo, nil)
+	if err := ev.Attach(0); err != nil {
 		panic(err)
 	}
 }
