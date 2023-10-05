@@ -308,7 +308,7 @@ func (bs *EventBase) handleActiveEvents() {
 			}
 			e = next
 
-			if ev.events&EvTimeout != 0 && ev.events&EvPersist != 0 {
+			if ev.res&EvTimeout != 0 && ev.events&EvPersist != 0 {
 				ev.deadline = bs.now().Add(ev.timeout)
 				bs.eventQueueInsert(ev, evListTimeout)
 			}
