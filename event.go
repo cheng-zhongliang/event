@@ -15,8 +15,6 @@ const (
 	EvWrite = 1 << iota
 	// EvTimeout is timeout event.
 	EvTimeout = 1 << iota
-	// EvClosed is closed event.
-	EvClosed = 1 << iota
 
 	// EvPersist is persistent behavior option.
 	EvPersist = 1 << iota

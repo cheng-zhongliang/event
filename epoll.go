@@ -22,7 +22,6 @@ const (
 type fdEvent struct {
 	r   *Event
 	w   *Event
-	c   *Event
 	et  uint8
 	evs uint32
 }
@@ -64,10 +63,6 @@ func (ep *poller) add(ev *Event) error {
 		es.w = ev
 		es.evs |= syscall.EPOLLOUT
 	}
-	if ev.events&EvClosed != 0 {
-		es.c = ev
-		es.evs |= syscall.EPOLLRDHUP
-	}
 	if ev.events&EvET != 0 {
 		es.et++
 		es.evs |= syscall.EPOLLET & maxUint32
@@ -90,10 +85,6 @@ func (ep *poller) del(ev *Event) error {
 	if ev.events&EvWrite != 0 {
 		es.w = nil
 		es.evs &^= syscall.EPOLLOUT
-	}
-	if ev.events&EvClosed != 0 {
-		es.c = nil
-		es.evs &^= syscall.EPOLLRDHUP
 	}
 	if ev.events&EvET != 0 {
 		if es.et--; es.et == 0 {
@@ -122,26 +113,19 @@ func (ep *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration)
 	}
 
 	for i := 0; i < n; i++ {
-		var evRead, evWrite, evClosed *Event
+		var evRead, evWrite *Event
 		what := ep.events[i].Events
 		es := *(**fdEvent)(unsafe.Pointer(&ep.events[i].Fd))
 
-		if what&syscall.EPOLLERR != 0 {
+		if what&(syscall.EPOLLERR|syscall.EPOLLHUP) != 0 {
+			what |= syscall.EPOLLIN | syscall.EPOLLOUT
+		}
+
+		if what&syscall.EPOLLIN != 0 {
 			evRead = es.r
+		}
+		if what&syscall.EPOLLOUT != 0 {
 			evWrite = es.w
-		} else if what&syscall.EPOLLHUP != 0 && what&syscall.EPOLLRDHUP == 0 {
-			evRead = es.r
-			evWrite = es.w
-		} else {
-			if what&syscall.EPOLLIN != 0 {
-				evRead = es.r
-			}
-			if what&syscall.EPOLLOUT != 0 {
-				evWrite = es.w
-			}
-			if what&syscall.EPOLLRDHUP != 0 {
-				evClosed = es.c
-			}
 		}
 
 		if evRead != nil {
@@ -149,9 +133,6 @@ func (ep *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration)
 		}
 		if evWrite != nil {
 			cb(evWrite, evWrite.events&(EvWrite|EvET))
-		}
-		if evClosed != nil {
-			cb(evClosed, evClosed.events&(EvClosed|EvET))
 		}
 	}
 
