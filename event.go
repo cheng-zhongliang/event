@@ -280,6 +280,8 @@ func (bs *EventBase) onTimeout() {
 			break
 		}
 
+		bs.eventQueueRemove(ev, evListTimeout)
+
 		bs.onActive(ev, EvTimeout)
 	}
 }
