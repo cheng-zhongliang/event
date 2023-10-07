@@ -222,8 +222,9 @@ func (bs *EventBase) Dispatch() error {
 	return bs.Loop(0)
 }
 
-// Exit exit event loop.
-func (bs *EventBase) Exit() error {
+// Free frees the event base.
+// It will break the loop and close the poller.
+func (bs *EventBase) Free() error {
 	return bs.poller.close()
 }
 
