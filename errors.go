@@ -10,10 +10,9 @@ import (
 )
 
 var (
-	ErrBadFileDescriptor = syscall.EBADF
-	ErrEventExists       = errors.New("event exists")
-	ErrEventNotExists    = errors.New("event does not exist")
-	ErrEventInvalid      = errors.New("event invalid")
+	ErrEventExists    = errors.New("event exists")
+	ErrEventNotExists = errors.New("event does not exist")
+	ErrEventInvalid   = errors.New("event invalid")
 )
 
 func temporaryErr(err error) bool {

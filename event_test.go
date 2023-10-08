@@ -18,7 +18,7 @@ func TestNewBase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := base.Exit(); err != nil {
+	if err := base.Shutdown(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -34,14 +34,14 @@ func TestAddEvent(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
-	err = ev.Attach(base, 0)
+	err = ev.Attach(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := base.Exit(); err != nil {
+	if err := base.Shutdown(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -59,9 +59,9 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
-	err = ev.Attach(base, 0)
+	err = ev.Attach(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,14 +71,14 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := base.Exit(); err != nil {
+	if err := base.Shutdown(); err != nil {
 		t.Fatal(err)
 	}
 
 	syscall.Close(int(r0))
 }
 
-func TestEventDispatch(t *testing.T) {
+func TestEventLoop(t *testing.T) {
 	base, err := NewBase()
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestEventDispatch(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	ev := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
+	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r0) {
 			t.Fatal("fd not equal")
 		}
@@ -100,12 +100,12 @@ func TestEventDispatch(t *testing.T) {
 			t.Fatal("arg not equal")
 		}
 		syscall.Read(int(r0), make([]byte, 8))
-		if err := base.Exit(); err != nil {
+		if err := base.Shutdown(); err != nil {
 			t.Fatal(err)
 		}
 	}, "hello")
 
-	err = ev.Attach(base, 0)
+	err = ev.Attach(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestEventDispatch(t *testing.T) {
 	}
 
 	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
+	if err != nil && err != syscall.EBADF {
 		t.Fatal(err)
 	}
 
@@ -135,7 +135,7 @@ func TestEventTimeout(t *testing.T) {
 	}
 
 	n := 0
-	ev := New(int(r0), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
+	ev := New(base, int(r0), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r0) {
 			t.Fatal("fd not equal")
 		}
@@ -145,19 +145,19 @@ func TestEventTimeout(t *testing.T) {
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		if err := base.Exit(); err != nil {
+		if err := base.Shutdown(); err != nil {
 			t.Fatal(err)
 		}
 		n++
 	}, "hello")
 
-	err = ev.Attach(base, 10*time.Millisecond)
+	err = ev.Attach(10 * time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
+	if err != nil && err != syscall.EBADF {
 		t.Fatal(err)
 	}
 
@@ -175,26 +175,26 @@ func TestTimer(t *testing.T) {
 	}
 
 	n := 0
-	ev := NewTimer(func(fd int, events uint32, arg interface{}) {
+	ev := NewTimer(base, func(fd int, events uint32, arg interface{}) {
 		if events != EvTimeout {
 			t.Fatal("events not equal")
 		}
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		if err := base.Exit(); err != nil {
+		if err := base.Shutdown(); err != nil {
 			t.Fatal(err)
 		}
 		n++
 	}, "hello")
 
-	err = ev.Attach(base, 10*time.Millisecond)
+	err = ev.Attach(10 * time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
+	if err != nil && err != syscall.EBADF {
 		t.Fatal(err)
 	}
 
@@ -210,7 +210,7 @@ func TestTicker(t *testing.T) {
 	}
 
 	n := 0
-	ev := NewTicker(func(fd int, events uint32, arg interface{}) {
+	ev := NewTicker(base, func(fd int, events uint32, arg interface{}) {
 		if events != EvTimeout {
 			t.Fatal("events not equal")
 		}
@@ -219,19 +219,19 @@ func TestTicker(t *testing.T) {
 		}
 		n++
 		if n == 3 {
-			if err := base.Exit(); err != nil {
+			if err := base.Shutdown(); err != nil {
 				t.Fatal(err)
 			}
 		}
 	}, "hello")
 
-	err = ev.Attach(base, 5*time.Millisecond)
+	err = ev.Attach(5 * time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
+	if err != nil && err != syscall.EBADF {
 		t.Fatal(err)
 	}
 
@@ -267,7 +267,7 @@ func TestPriority(t *testing.T) {
 	}
 
 	triggerTime0 := 0
-	ev0 := New(int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
+	ev0 := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r0) {
 			t.Fatal("fd not equal")
 		}
@@ -279,13 +279,13 @@ func TestPriority(t *testing.T) {
 		}
 		syscall.Read(int(r0), make([]byte, 8))
 		triggerTime0 = int(time.Now().UnixMicro())
-		if err := base.Exit(); err != nil {
+		if err := base.Shutdown(); err != nil {
 			t.Fatal(err)
 		}
 	}, "hello")
 
 	triggerTime1 := 0
-	ev1 := New(int(r1), EvRead, func(fd int, events uint32, arg interface{}) {
+	ev1 := New(base, int(r1), EvRead, func(fd int, events uint32, arg interface{}) {
 		if fd != int(r1) {
 			t.Fatal("fd not equal")
 		}
@@ -300,18 +300,18 @@ func TestPriority(t *testing.T) {
 	}, "hello")
 	ev1.SetPriority(HPri)
 
-	err = ev0.Attach(base, 0)
+	err = ev0.Attach(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ev1.Attach(base, 0)
+	err = ev1.Attach(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
+	if err != nil && err != syscall.EBADF {
 		t.Fatal(err)
 	}
 
@@ -340,9 +340,9 @@ func TestEdgeTrigger(t *testing.T) {
 	}
 
 	n := 0
-	ev := New(int(r0), EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
+	ev := New(base, int(r0), EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
 		if events&EvTimeout != 0 {
-			if err := base.Exit(); err != nil {
+			if err := base.Shutdown(); err != nil {
 				t.Fatal(err)
 			}
 			return
@@ -353,13 +353,13 @@ func TestEdgeTrigger(t *testing.T) {
 		n++
 	}, "hello")
 
-	err = ev.Attach(base, 10*time.Millisecond)
+	err = ev.Attach(10 * time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = base.Dispatch()
-	if err != nil && err != ErrBadFileDescriptor {
+	if err != nil && err != syscall.EBADF {
 		t.Fatal(err)
 	}
 
@@ -387,15 +387,15 @@ func BenchmarkEventAdd(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
-		err = ev.Attach(base, 0)
+		ev := New(base, receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+		err = ev.Attach(0)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 	b.StopTimer()
 
-	if err := base.Exit(); err != nil {
+	if err := base.Shutdown(); err != nil {
 		b.Fatal(err)
 	}
 
@@ -419,8 +419,8 @@ func BenchmarkEventDel(b *testing.B) {
 		}
 		receivers[i] = fds[0]
 
-		ev := New(receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
-		err = ev.Attach(base, 0)
+		ev := New(base, receivers[i], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+		err = ev.Attach(0)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -436,7 +436,7 @@ func BenchmarkEventDel(b *testing.B) {
 	}
 	b.StopTimer()
 
-	if err := base.Exit(); err != nil {
+	if err := base.Shutdown(); err != nil {
 		b.Fatal(err)
 	}
 
@@ -465,11 +465,11 @@ func BenchmarkEventLoop(b *testing.B) {
 		receivers[i] = fds[0]
 		senders[i] = fds[1]
 
-		ev := New(fds[0], EvRead|EvPersist, func(fd int, events uint32, arg interface{}) {
+		ev := New(base, fds[0], EvRead|EvPersist, func(fd int, events uint32, arg interface{}) {
 			syscall.Read(fd, buf)
 			fires++
 		}, nil)
-		err = ev.Attach(base, 0)
+		err = ev.Attach(0)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -494,7 +494,7 @@ func BenchmarkEventLoop(b *testing.B) {
 		syscall.Close(senders[i])
 	}
 
-	if err := base.Exit(); err != nil {
+	if err := base.Shutdown(); err != nil {
 		b.Fatal(err)
 	}
 }

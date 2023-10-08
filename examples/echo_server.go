@@ -18,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := base.Dispatch(); err != nil && err != event.ErrBadFileDescriptor {
+	if err := base.Dispatch(); err != nil && err != syscall.EBADF {
 		panic(err)
 	}
 
