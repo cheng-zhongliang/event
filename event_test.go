@@ -29,12 +29,12 @@ func TestAddEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+	ev := New(base, fds[0], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
 	err = ev.Attach(0)
 	if err != nil {
@@ -45,7 +45,8 @@ func TestAddEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	syscall.Close(int(r0))
+	syscall.Close(fds[0])
+	syscall.Close(fds[1])
 }
 
 func TestDelEvent(t *testing.T) {
@@ -54,12 +55,12 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
+	ev := New(base, fds[0], EvRead, func(fd int, events uint32, arg interface{}) {}, nil)
 
 	err = ev.Attach(0)
 	if err != nil {
@@ -75,7 +76,8 @@ func TestDelEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	syscall.Close(int(r0))
+	syscall.Close(fds[0])
+	syscall.Close(fds[1])
 }
 
 func TestEventLoop(t *testing.T) {
@@ -84,13 +86,13 @@ func TestEventLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	ev := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
-		if fd != int(r0) {
+	ev := New(base, fds[0], EvRead, func(fd int, events uint32, arg interface{}) {
+		if fd != fds[0] {
 			t.Fatal("fd not equal")
 		}
 		if events != EvRead {
@@ -99,7 +101,7 @@ func TestEventLoop(t *testing.T) {
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		syscall.Read(int(r0), make([]byte, 8))
+		syscall.Read(fds[0], make([]byte, 8))
 		if err := base.Shutdown(); err != nil {
 			t.Fatal(err)
 		}
@@ -110,7 +112,7 @@ func TestEventLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = syscall.Write(int(r0), []byte{0, 0, 0, 0, 0, 0, 0, 1})
+	_, err = syscall.Write(fds[1], []byte{0, 0, 0, 0, 0, 0, 0, 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +122,8 @@ func TestEventLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	syscall.Close(int(r0))
+	syscall.Close(fds[0])
+	syscall.Close(fds[1])
 }
 
 func TestEventTimeout(t *testing.T) {
@@ -129,14 +132,14 @@ func TestEventTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	n := 0
-	ev := New(base, int(r0), EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
-		if fd != int(r0) {
+	ev := New(base, fds[0], EvRead|EvTimeout, func(fd int, events uint32, arg interface{}) {
+		if fd != fds[0] {
 			t.Fatal("fd not equal")
 		}
 		if events != EvTimeout {
@@ -165,7 +168,8 @@ func TestEventTimeout(t *testing.T) {
 		t.FailNow()
 	}
 
-	syscall.Close(int(r0))
+	syscall.Close(fds[0])
+	syscall.Close(fds[1])
 }
 
 func TestTimer(t *testing.T) {
@@ -246,29 +250,29 @@ func TestPriority(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
-	}
-
-	r1, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
-	}
-
-	_, err = syscall.Write(int(r0), []byte{0, 0, 0, 0, 0, 0, 0, 1})
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = syscall.Write(int(r1), []byte{0, 0, 0, 0, 0, 0, 0, 1})
+	fds1, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = syscall.Write(fds[1], []byte{0, 0, 0, 0, 0, 0, 0, 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = syscall.Write(fds1[1], []byte{0, 0, 0, 0, 0, 0, 0, 1})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	triggerTime0 := 0
-	ev0 := New(base, int(r0), EvRead, func(fd int, events uint32, arg interface{}) {
-		if fd != int(r0) {
+	ev0 := New(base, fds[0], EvRead, func(fd int, events uint32, arg interface{}) {
+		if fd != fds[0] {
 			t.Fatal("fd not equal")
 		}
 		if events != EvRead {
@@ -277,7 +281,7 @@ func TestPriority(t *testing.T) {
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		syscall.Read(int(r0), make([]byte, 8))
+		syscall.Read(fds[0], make([]byte, 8))
 		triggerTime0 = int(time.Now().UnixMicro())
 		if err := base.Shutdown(); err != nil {
 			t.Fatal(err)
@@ -285,8 +289,8 @@ func TestPriority(t *testing.T) {
 	}, "hello")
 
 	triggerTime1 := 0
-	ev1 := New(base, int(r1), EvRead, func(fd int, events uint32, arg interface{}) {
-		if fd != int(r1) {
+	ev1 := New(base, fds1[0], EvRead, func(fd int, events uint32, arg interface{}) {
+		if fd != fds1[0] {
 			t.Fatal("fd not equal")
 		}
 		if events != EvRead {
@@ -295,7 +299,7 @@ func TestPriority(t *testing.T) {
 		if arg != "hello" {
 			t.Fatal("arg not equal")
 		}
-		syscall.Read(int(r1), make([]byte, 8))
+		syscall.Read(fds1[0], make([]byte, 8))
 		triggerTime1 = int(time.Now().UnixMicro())
 	}, "hello")
 	ev1.SetPriority(HPri)
@@ -319,8 +323,10 @@ func TestPriority(t *testing.T) {
 		t.FailNow()
 	}
 
-	syscall.Close(int(r0))
-	syscall.Close(int(r1))
+	syscall.Close(fds[0])
+	syscall.Close(fds[1])
+	syscall.Close(fds1[0])
+	syscall.Close(fds1[1])
 }
 
 func TestEdgeTrigger(t *testing.T) {
@@ -329,18 +335,18 @@ func TestEdgeTrigger(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
-	if errno != 0 {
-		t.Fatal(errno)
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	_, err = syscall.Write(int(r0), []byte{0, 0, 0, 0, 0, 0, 0, 1})
+	_, err = syscall.Write(fds[1], []byte{0, 0, 0, 0, 0, 0, 0, 1})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	n := 0
-	ev := New(base, int(r0), EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
+	ev := New(base, fds[0], EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
 		if events&EvTimeout != 0 {
 			if err := base.Shutdown(); err != nil {
 				t.Fatal(err)
@@ -367,7 +373,8 @@ func TestEdgeTrigger(t *testing.T) {
 		t.FailNow()
 	}
 
-	syscall.Close(int(r0))
+	syscall.Close(fds[0])
+	syscall.Close(fds[1])
 }
 
 func BenchmarkEventAdd(b *testing.B) {
