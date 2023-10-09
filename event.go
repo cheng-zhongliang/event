@@ -50,9 +50,9 @@ type Event struct {
 	base *EventBase
 
 	// ele is the element in the total event list.
-	ele *element
+	ele *element[*Event]
 	// activeEle is the element in the active event list.
-	activeEle *element
+	activeEle *element[*Event]
 	// index is the index in the event heap.
 	index int
 
@@ -167,9 +167,9 @@ type EventBase struct {
 	// poller is the event poller to watch events.
 	poller *poller
 	// evList is the list of all events.
-	evList *list
+	evList *list[*Event]
 	// activeEvList is the list of active events.
-	activeEvLists []*list
+	activeEvLists []*list[*Event]
 	// eventHeap is the min heap of timeout events.
 	evHeap *eventHeap
 	// nowTimeCache is the cache of now time.
@@ -185,8 +185,8 @@ func NewBase() (*EventBase, error) {
 
 	return &EventBase{
 		poller:        poller,
-		evList:        newList(),
-		activeEvLists: []*list{newList(), newList(), newList()},
+		evList:        newList[*Event](),
+		activeEvLists: []*list[*Event]{newList[*Event](), newList[*Event](), newList[*Event]()},
 		evHeap:        new(eventHeap),
 		nowTimeCache:  time.Time{},
 	}, nil
@@ -300,7 +300,7 @@ func (bs *EventBase) handleActiveEvents() {
 	for i := range bs.activeEvLists {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
-			ev := e.value.(*Event)
+			ev := e.value
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)
 				if ev.events&EvTimeout != 0 {
