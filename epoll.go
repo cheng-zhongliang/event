@@ -75,11 +75,11 @@ func (ep *poller) add(ev *Event) error {
 		es.evs |= syscall.EPOLLET & maxUint32
 	}
 
-	epEv := &syscall.EpollEvent{Events: es.evs}
+	epEv := syscall.EpollEvent{Events: es.evs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
+	return syscall.EpollCtl(ep.fd, op, ev.fd, &epEv)
 }
 
 func (ep *poller) del(ev *Event) error {
@@ -107,11 +107,11 @@ func (ep *poller) del(ev *Event) error {
 		op = syscall.EPOLL_CTL_MOD
 	}
 
-	epEv := &syscall.EpollEvent{Events: es.evs}
+	epEv := syscall.EpollEvent{Events: es.evs}
 
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
 
-	return syscall.EpollCtl(ep.fd, op, ev.fd, epEv)
+	return syscall.EpollCtl(ep.fd, op, ev.fd, &epEv)
 }
 
 func (ep *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration) error {
