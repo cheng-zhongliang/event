@@ -8,6 +8,7 @@
 package event
 
 import (
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -18,6 +19,12 @@ const (
 	maxNEvent     = 0x1000
 	maxUint32     = 0xFFFFFFFF
 )
+
+var fdEvPool = sync.Pool{
+	New: func() any {
+		return new(fdEvent)
+	},
+}
 
 type fdEvent struct {
 	r   *Event
@@ -51,7 +58,7 @@ func (ep *poller) add(ev *Event) error {
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
 	} else {
-		es = new(fdEvent)
+		es = fdEvPool.Get().(*fdEvent)
 		ep.fdEvents[ev.fd] = es
 	}
 
@@ -95,6 +102,7 @@ func (ep *poller) del(ev *Event) error {
 	op := syscall.EPOLL_CTL_DEL
 	if es.evs&(syscall.EPOLLIN|syscall.EPOLLOUT) == 0 {
 		delete(ep.fdEvents, ev.fd)
+		fdEvPool.Put(es)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
