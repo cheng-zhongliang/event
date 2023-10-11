@@ -20,7 +20,7 @@ const (
 	maxUint32     = 0xFFFFFFFF
 )
 
-var fdEvPool = sync.Pool{
+var evPool = sync.Pool{
 	New: func() any {
 		return new(fdEvent)
 	},
@@ -58,7 +58,7 @@ func (ep *poller) add(ev *Event) error {
 	if ok {
 		op = syscall.EPOLL_CTL_MOD
 	} else {
-		es = fdEvPool.Get().(*fdEvent)
+		es = evPool.Get().(*fdEvent)
 		ep.fdEvents[ev.fd] = es
 	}
 
@@ -102,7 +102,7 @@ func (ep *poller) del(ev *Event) error {
 	op := syscall.EPOLL_CTL_DEL
 	if es.evs&(syscall.EPOLLIN|syscall.EPOLLOUT) == 0 {
 		delete(ep.fdEvents, ev.fd)
-		fdEvPool.Put(es)
+		evPool.Put(es)
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
