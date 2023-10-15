@@ -26,19 +26,19 @@ const (
 	// EvLoopNoblock is the flag to control event base loop not block.
 	EvLoopNoblock = 002
 
-	// evListInserted is the flag to indicate the event is in the event list.
-	evListInserted = 0x01
-	// evListActive is the flag to indicate the event is in the active event list.
-	evListActive = 0x02
-	// evListTimeout is the flag to indicate the event is in the timeout event heap.
-	evListTimeout = 0x04
-
 	// HPri is the high priority.
 	HPri eventPriority = 0b00
 	// MPri is the middle priority.
 	MPri eventPriority = 0b01
 	// LPri is the low priority.
 	LPri eventPriority = 0b10
+
+	// evListInserted is the flag to indicate the event is in the event list.
+	evListInserted = 0x01
+	// evListActive is the flag to indicate the event is in the active event list.
+	evListActive = 0x02
+	// evListTimeout is the flag to indicate the event is in the timeout event heap.
+	evListTimeout = 0x04
 )
 
 // eventPriority is the priority of the event.
@@ -48,34 +48,28 @@ type eventPriority uint8
 type Event struct {
 	// base is the event base of the event.
 	base *EventBase
-
 	// ele is the element in the total event list.
-	ele *element[*Event]
+	ele element[*Event]
 	// activeEle is the element in the active event list.
-	activeEle *element[*Event]
+	activeEle element[*Event]
 	// index is the index in the event heap.
 	index int
-
 	// fd is the file descriptor to watch.
 	fd int
 	// events is the events to watch. Such as EvRead or EvWrite.
 	events uint32
-
 	// cb is the callback function when the event is triggered.
 	cb func(fd int, events uint32, arg any)
 	// arg is the argument passed to the callback function.
 	arg any
-
 	// res is the result passed to the callback function.
 	res uint32
 	// flags is the status of the event in the event list.
 	flags int
-
 	// timeout is the timeout of the event.
 	timeout time.Duration
 	// deadline is the deadline for the event.
 	deadline time.Time
-
 	// priority is the priority of the event.
 	priority eventPriority
 }
@@ -100,8 +94,8 @@ func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd
 	ev.flags = 0
 	ev.timeout = 0
 	ev.deadline = time.Time{}
-	ev.ele = nil
-	ev.activeEle = nil
+	ev.ele = element[*Event]{}
+	ev.activeEle = element[*Event]{}
 	ev.index = -1
 }
 
@@ -112,13 +106,10 @@ func (ev *Event) Attach(timeout time.Duration) error {
 	if ev.events&(EvRead|EvWrite|EvTimeout) == 0 {
 		return ErrEventInvalid
 	}
-
 	if ev.flags&evListInserted != 0 {
 		return ErrEventExists
 	}
-
 	ev.timeout = timeout
-
 	return ev.base.addEvent(ev)
 }
 
@@ -128,7 +119,6 @@ func (ev *Event) Detach() error {
 	if ev.flags&evListInserted == 0 {
 		return ErrEventNotExists
 	}
-
 	return ev.base.delEvent(ev)
 }
 
@@ -164,8 +154,8 @@ func (ev *Event) SetPriority(priority eventPriority) {
 
 // EventBase is the base of all events.
 type EventBase struct {
-	// poller is the event poller to watch events.
-	poller *poller
+	// poll is the event poller to watch events.
+	poll *poll
 	// evList is the list of all events.
 	evList *list[*Event]
 	// activeEvList is the list of active events.
@@ -178,18 +168,17 @@ type EventBase struct {
 
 // NewBase creates a new event base.
 func NewBase() (*EventBase, error) {
-	poller, err := newPoller()
+	bs := new(EventBase)
+	p, err := openPoll()
 	if err != nil {
 		return nil, err
 	}
-
-	return &EventBase{
-		poller:        poller,
-		evList:        newList[*Event](),
-		activeEvLists: []*list[*Event]{newList[*Event](), newList[*Event](), newList[*Event]()},
-		evHeap:        new(eventHeap),
-		nowTimeCache:  time.Time{},
-	}, nil
+	bs.poll = p
+	bs.evList = newList[*Event]()
+	bs.activeEvLists = []*list[*Event]{newList[*Event](), newList[*Event](), newList[*Event]()}
+	bs.evHeap = new(eventHeap)
+	bs.nowTimeCache = time.Time{}
+	return bs, nil
 }
 
 // Loop loops events.
@@ -197,19 +186,14 @@ func NewBase() (*EventBase, error) {
 // If flags is EvLoopNoblock, it will not block.
 func (bs *EventBase) Loop(flags int) error {
 	bs.clearTimeCache()
-
 	for {
-		err := bs.poller.polling(bs.onActive, bs.waitTime(flags&EvLoopNoblock != 0))
+		err := bs.poll.wait(bs.onActive, bs.waitTime(flags&EvLoopNoblock != 0))
 		if err != nil {
 			return err
 		}
-
 		bs.updateTimeCache()
-
 		bs.onTimeout()
-
 		bs.handleActiveEvents()
-
 		if flags&EvLoopOnce != 0 {
 			return nil
 		}
@@ -222,9 +206,9 @@ func (bs *EventBase) Dispatch() error {
 	return bs.Loop(0)
 }
 
-// Shutdown breaks event loop and close the poller.
+// Shutdown breaks event loop and close the poll.
 func (bs *EventBase) Shutdown() error {
-	return bs.poller.close()
+	return bs.poll.close()
 }
 
 // addEvent adds an event to the event base.
@@ -233,28 +217,21 @@ func (bs *EventBase) addEvent(ev *Event) error {
 		ev.deadline = bs.now().Add(ev.timeout)
 		bs.eventQueueInsert(ev, evListTimeout)
 	}
-
 	bs.eventQueueInsert(ev, evListInserted)
-
 	if ev.events&(EvRead|EvWrite) != 0 {
-		return bs.poller.add(ev)
+		return bs.poll.add(ev)
 	}
-
 	return nil
 }
 
 // delEvent deletes an event from the event base.
 func (bs *EventBase) delEvent(ev *Event) error {
 	bs.eventQueueRemove(ev, evListTimeout)
-
 	bs.eventQueueRemove(ev, evListActive)
-
 	bs.eventQueueRemove(ev, evListInserted)
-
 	if ev.events&(EvRead|EvWrite) != 0 {
-		return bs.poller.del(ev)
+		return bs.poll.del(ev)
 	}
-
 	return nil
 }
 
@@ -279,9 +256,7 @@ func (bs *EventBase) onTimeout() {
 		if ev.deadline.After(now) {
 			break
 		}
-
 		bs.eventQueueRemove(ev, evListTimeout)
-
 		bs.onActive(ev, EvTimeout)
 	}
 }
@@ -291,7 +266,6 @@ func (bs *EventBase) onActive(ev *Event, res uint32) {
 		ev.res |= res
 		return
 	}
-
 	ev.res = res
 	bs.eventQueueInsert(ev, evListActive)
 }
@@ -312,7 +286,6 @@ func (bs *EventBase) handleActiveEvents() {
 				bs.delEvent(ev)
 			}
 			e = next
-
 			ev.cb(ev.fd, ev.res, ev.arg)
 		}
 	}
@@ -322,15 +295,14 @@ func (bs *EventBase) eventQueueInsert(ev *Event, which int) {
 	if ev.flags&which != 0 {
 		return
 	}
-
 	ev.flags |= which
 	switch which {
 	case evListInserted:
-		ev.ele = bs.evList.pushBack(ev)
+		bs.evList.pushBack(ev, &ev.ele)
 	case evListActive:
-		ev.activeEle = bs.activeEvLists[ev.priority].pushBack(ev)
+		bs.activeEvLists[ev.priority].pushBack(ev, &ev.activeEle)
 	case evListTimeout:
-		ev.index = bs.evHeap.pushEvent(ev)
+		bs.evHeap.pushEvent(ev)
 	}
 }
 
@@ -338,13 +310,12 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 	if ev.flags&which == 0 {
 		return
 	}
-
 	ev.flags &^= which
 	switch which {
 	case evListInserted:
-		bs.evList.remove(ev.ele)
+		bs.evList.remove(&ev.ele)
 	case evListActive:
-		bs.activeEvLists[ev.priority].remove(ev.activeEle)
+		bs.activeEvLists[ev.priority].remove(&ev.activeEle)
 	case evListTimeout:
 		bs.evHeap.removeEvent(ev.index)
 	}

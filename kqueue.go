@@ -18,26 +18,26 @@ const (
 	maxNEvent     = 0x1000
 )
 
-type poller struct {
+type poll struct {
 	fd      int
 	changes []syscall.Kevent_t
 	events  []syscall.Kevent_t
 }
 
-func newPoller() (*poller, error) {
+func openPoll() (*poll, error) {
 	fd, err := syscall.Kqueue()
 	if err != nil {
 		return nil, err
 	}
 
-	return &poller{
+	return &poll{
 		fd:      fd,
 		changes: make([]syscall.Kevent_t, initialNEvent),
 		events:  make([]syscall.Kevent_t, initialNEvent),
 	}, nil
 }
 
-func (kq *poller) add(ev *Event) error {
+func (kq *poll) add(ev *Event) error {
 	ET := uint16(0)
 	if ev.events&EvET != 0 {
 		ET = syscall.EV_CLEAR
@@ -61,7 +61,7 @@ func (kq *poller) add(ev *Event) error {
 	return nil
 }
 
-func (kq *poller) del(ev *Event) error {
+func (kq *poll) del(ev *Event) error {
 	if ev.events&EvRead != 0 {
 		kq.changes = append(kq.changes, syscall.Kevent_t{
 			Ident:  uint64(ev.fd),
@@ -79,8 +79,14 @@ func (kq *poller) del(ev *Event) error {
 	return nil
 }
 
-func (kq *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration) error {
-	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, timespec(timeout))
+func (kq *poll) wait(cb func(ev *Event, res uint32), timeout time.Duration) error {
+	var timespec *syscall.Timespec = nil
+	if timeout >= 0 {
+		ts := syscall.NsecToTimespec(timeout.Nanoseconds())
+		timespec = &ts
+	}
+
+	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, timespec)
 	if err != nil && !temporaryErr(err) {
 		return err
 	}
@@ -117,15 +123,6 @@ func (kq *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration)
 	return nil
 }
 
-func (kq *poller) close() error {
+func (kq *poll) close() error {
 	return syscall.Close(kq.fd)
-}
-
-func timespec(d time.Duration) *syscall.Timespec {
-	if d >= 0 {
-		ts := syscall.NsecToTimespec(d.Nanoseconds())
-		return &ts
-	} else {
-		return nil
-	}
 }

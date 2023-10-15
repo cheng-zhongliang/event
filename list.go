@@ -37,8 +37,7 @@ func (l *list[T]) front() *element[T] {
 	return l.root.next
 }
 
-func (l *list[T]) pushBack(v T) *element[T] {
-	e := new(element[T])
+func (l *list[T]) pushBack(v T, e *element[T]) *element[T] {
 	e.list = l
 	e.value = v
 	n := &l.root

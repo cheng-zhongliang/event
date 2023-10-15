@@ -33,26 +33,26 @@ type fdEvent struct {
 	evs uint32
 }
 
-type poller struct {
+type poll struct {
 	fd       int
 	fdEvents map[int]*fdEvent
 	events   []syscall.EpollEvent
 }
 
-func newPoller() (*poller, error) {
+func openPoll() (*poll, error) {
 	fd, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return nil, err
 	}
 
-	return &poller{
+	return &poll{
 		fd:       fd,
 		fdEvents: make(map[int]*fdEvent),
 		events:   make([]syscall.EpollEvent, initialNEvent),
 	}, nil
 }
 
-func (ep *poller) add(ev *Event) error {
+func (ep *poll) add(ev *Event) error {
 	op := syscall.EPOLL_CTL_ADD
 	es, ok := ep.fdEvents[ev.fd]
 	if ok {
@@ -82,7 +82,7 @@ func (ep *poller) add(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, &epEv)
 }
 
-func (ep *poller) del(ev *Event) error {
+func (ep *poll) del(ev *Event) error {
 	es := ep.fdEvents[ev.fd]
 
 	if ev.events&EvRead != 0 {
@@ -114,7 +114,7 @@ func (ep *poller) del(ev *Event) error {
 	return syscall.EpollCtl(ep.fd, op, ev.fd, &epEv)
 }
 
-func (ep *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration) error {
+func (ep *poll) wait(cb func(ev *Event, res uint32), timeout time.Duration) error {
 	n, err := syscall.EpollWait(ep.fd, ep.events, int(timeout.Milliseconds()))
 	if err != nil && !temporaryErr(err) {
 		return err
@@ -151,6 +151,6 @@ func (ep *poller) polling(cb func(ev *Event, res uint32), timeout time.Duration)
 	return nil
 }
 
-func (ep *poller) close() error {
+func (ep *poll) close() error {
 	return syscall.Close(ep.fd)
 }
