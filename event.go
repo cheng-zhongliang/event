@@ -74,7 +74,7 @@ type Event struct {
 	priority eventPriority
 }
 
-// New creates a new event.
+// New creates a new event with default priority MPri.
 func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg any), arg any) *Event {
 	ev := new(Event)
 	ev.Assign(base, fd, events, callback, arg, MPri)
@@ -83,6 +83,7 @@ func New(base *EventBase, fd int, events uint32, callback func(fd int, events ui
 
 // Assign assigns the event.
 // It is used to reuse the event.
+// The event must be detached before it is assigned.
 func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg any), arg any, priority eventPriority) {
 	ev.base = base
 	ev.fd = fd
@@ -182,8 +183,10 @@ func NewBase() (*EventBase, error) {
 }
 
 // Loop loops events.
-// If flags is EvLoopOnce, it will block until an event is triggered. Then it will exit.
-// If flags is EvLoopNoblock, it will not block.
+// Flags is the flags to control the loop behavior.
+// Flags can be EvLoopOnce or EvLoopNoblock or both.
+// If EvLoopOnce is set, the loop will just loop once.
+// If EvLoopNoblock is set, the loop will not block.
 func (bs *EventBase) Loop(flags int) error {
 	bs.clearTimeCache()
 	for {
@@ -211,20 +214,18 @@ func (bs *EventBase) Shutdown() error {
 	return bs.poll.close()
 }
 
-// addEvent adds an event to the event base.
 func (bs *EventBase) addEvent(ev *Event) error {
+	bs.eventQueueInsert(ev, evListInserted)
 	if ev.events&EvTimeout != 0 {
 		ev.deadline = bs.now().Add(ev.timeout)
 		bs.eventQueueInsert(ev, evListTimeout)
 	}
-	bs.eventQueueInsert(ev, evListInserted)
 	if ev.events&(EvRead|EvWrite) != 0 {
 		return bs.poll.add(ev)
 	}
 	return nil
 }
 
-// delEvent deletes an event from the event base.
 func (bs *EventBase) delEvent(ev *Event) error {
 	bs.eventQueueRemove(ev, evListTimeout)
 	bs.eventQueueRemove(ev, evListActive)
