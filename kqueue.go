@@ -25,16 +25,15 @@ type poll struct {
 }
 
 func openPoll() (*poll, error) {
+	kq := new(poll)
 	fd, err := syscall.Kqueue()
 	if err != nil {
 		return nil, err
 	}
-
-	return &poll{
-		fd:      fd,
-		changes: make([]syscall.Kevent_t, initialNEvent),
-		events:  make([]syscall.Kevent_t, initialNEvent),
-	}, nil
+	kq.fd = fd
+	kq.changes = make([]syscall.Kevent_t, initialNEvent)
+	kq.events = make([]syscall.Kevent_t, initialNEvent)
+	return kq, nil
 }
 
 func (kq *poll) add(ev *Event) error {

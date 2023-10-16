@@ -275,6 +275,7 @@ func (bs *EventBase) handleActiveEvents() {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
 			ev := e.value
+			e = next
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)
 				if ev.events&EvTimeout != 0 {
@@ -285,7 +286,6 @@ func (bs *EventBase) handleActiveEvents() {
 			} else {
 				bs.delEvent(ev)
 			}
-			e = next
 			ev.cb(ev.fd, ev.res, ev.arg)
 		}
 	}

@@ -40,16 +40,15 @@ type poll struct {
 }
 
 func openPoll() (*poll, error) {
+	ep := new(poll)
 	fd, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return nil, err
 	}
-
-	return &poll{
-		fd:       fd,
-		fdEvents: make(map[int]*fdEvent),
-		events:   make([]syscall.EpollEvent, initialNEvent),
-	}, nil
+	ep.fd = fd
+	ep.fdEvents = make(map[int]*fdEvent, initialNEvent)
+	ep.events = make([]syscall.EpollEvent, initialNEvent)
+	return ep, nil
 }
 
 func (ep *poll) add(ev *Event) error {
