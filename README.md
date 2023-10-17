@@ -24,10 +24,10 @@ The goal of `event` is to provide a `BASIC` tool for building high performance n
 
 ## Features
 
-- Supports more events
+- Supports Read/Write/Timeout events
 - Flexible timer event and ticker event
 - Supports event priority
-- Edge-triggered
+- Edge-triggered option
 - Simple API
 - Low memory usage
 
