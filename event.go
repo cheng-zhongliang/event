@@ -214,10 +214,18 @@ func (bs *EventBase) Shutdown() error {
 	return bs.poll.close()
 }
 
+// Now returns the cache of now time.
+func (bs *EventBase) Now() time.Time {
+	if !bs.nowTimeCache.IsZero() {
+		return bs.nowTimeCache
+	}
+	return time.Now()
+}
+
 func (bs *EventBase) addEvent(ev *Event) error {
 	bs.eventQueueInsert(ev, evListInserted)
 	if ev.events&EvTimeout != 0 {
-		ev.deadline = bs.now().Add(ev.timeout)
+		ev.deadline = bs.Now().Add(ev.timeout)
 		bs.eventQueueInsert(ev, evListTimeout)
 	}
 	if ev.events&(EvRead|EvWrite) != 0 {
@@ -242,7 +250,7 @@ func (bs *EventBase) waitTime(noblock bool) time.Duration {
 	}
 	if !bs.evHeap.empty() {
 		ev := bs.evHeap.peekEvent()
-		if d := ev.deadline.Sub(bs.now()); d > 0 {
+		if d := ev.deadline.Sub(bs.Now()); d > 0 {
 			return d
 		}
 		return 0
@@ -251,7 +259,7 @@ func (bs *EventBase) waitTime(noblock bool) time.Duration {
 }
 
 func (bs *EventBase) onTimeout() {
-	now := bs.now()
+	now := bs.Now()
 	for !bs.evHeap.empty() {
 		ev := bs.evHeap.peekEvent()
 		if ev.deadline.After(now) {
@@ -281,7 +289,7 @@ func (bs *EventBase) handleActiveEvents() {
 				bs.eventQueueRemove(ev, evListActive)
 				if ev.events&EvTimeout != 0 {
 					bs.eventQueueRemove(ev, evListTimeout)
-					ev.deadline = bs.now().Add(ev.timeout)
+					ev.deadline = bs.Now().Add(ev.timeout)
 					bs.eventQueueInsert(ev, evListTimeout)
 				}
 			} else {
@@ -320,13 +328,6 @@ func (bs *EventBase) eventQueueRemove(ev *Event, which int) {
 	case evListTimeout:
 		bs.evHeap.removeEvent(ev.index)
 	}
-}
-
-func (bs *EventBase) now() time.Time {
-	if !bs.nowTimeCache.IsZero() {
-		return bs.nowTimeCache
-	}
-	return time.Now()
 }
 
 func (bs *EventBase) updateTimeCache() {
