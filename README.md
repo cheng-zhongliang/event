@@ -40,14 +40,27 @@ To start using `event`, just run `go get`:
 $ go get -u github.com/cheng-zhongliang/event
 ```
 
-### Events
+### Event
 
 - `EvRead` fires when the fd is readable.
 - `EvWrite` fires when the fd is writable.
 - `EvTimeout` fires when the timeout expires.
-- `EvPersist` __if not set, the event will be deleted after it is triggered.__
 
 When the event is triggered, the callback function will be called.
+
+### Option
+
+The event is one-shot by default. If you want to persist, you can set the `EvPersist` option.
+
+```go
+ev := event.New(base, fd, event.EvRead|event.EvPersist, callback, arg)
+```
+
+The event is level-triggered by default. If you want to use edge-triggered, you can set the `EvET` option.
+
+```go
+ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
+```
 
 ### Read/Write/Timeout
 
@@ -88,14 +101,6 @@ When events are triggered together, high priority events will be dispatched firs
 ```go
 ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
 ev.SetPriority(event.HPri)
-```
-
-### Edge-triggered
-
-The event is level-triggered by default. If you want to use edge-triggered, you can set the `EvET` flag.
-
-```go
-ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
 ```
 
 ### Usage
