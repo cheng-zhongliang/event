@@ -4,40 +4,40 @@
 
 package event
 
-type element[T any] struct {
-	next, prev *element[T]
-	list       *list[T]
-	value      T
+type element struct {
+	next, prev *element
+	list       *list
+	value      interface{}
 }
 
-func (e *element[T]) nextEle() *element[T] {
+func (e *element) nextEle() *element {
 	if p := e.next; e.list != nil && p != &e.list.root {
 		return p
 	}
 	return nil
 }
 
-type list[T any] struct {
-	root element[T]
+type list struct {
+	root element
 	len  int
 }
 
-func newList[T any]() *list[T] {
-	l := new(list[T])
+func newList() *list {
+	l := new(list)
 	l.root.next = &l.root
 	l.root.prev = &l.root
 	l.len = 0
 	return l
 }
 
-func (l *list[T]) front() *element[T] {
+func (l *list) front() *element {
 	if l.len == 0 {
 		return nil
 	}
 	return l.root.next
 }
 
-func (l *list[T]) pushBack(v T, e *element[T]) *element[T] {
+func (l *list) pushBack(v interface{}, e *element) *element {
 	e.list = l
 	e.value = v
 	n := &l.root
@@ -50,7 +50,7 @@ func (l *list[T]) pushBack(v T, e *element[T]) *element[T] {
 	return e
 }
 
-func (l *list[T]) remove(e *element[T]) {
+func (l *list) remove(e *element) {
 	e.prev.next = e.next
 	e.next.prev = e.prev
 	e.next = nil

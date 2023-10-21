@@ -49,9 +49,9 @@ type Event struct {
 	// base is the event base of the event.
 	base *EventBase
 	// ele is the element in the total event list.
-	ele element[*Event]
+	ele element
 	// activeEle is the element in the active event list.
-	activeEle element[*Event]
+	activeEle element
 	// index is the index in the event heap.
 	index int
 	// fd is the file descriptor to watch.
@@ -59,9 +59,9 @@ type Event struct {
 	// events is the events to watch. Such as EvRead or EvWrite.
 	events uint32
 	// cb is the callback function when the event is triggered.
-	cb func(fd int, events uint32, arg any)
+	cb func(fd int, events uint32, arg interface{})
 	// arg is the argument passed to the callback function.
-	arg any
+	arg interface{}
 	// res is the result passed to the callback function.
 	res uint32
 	// flags is the status of the event in the event list.
@@ -75,7 +75,7 @@ type Event struct {
 }
 
 // New creates a new event with default priority MPri.
-func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg any), arg any) *Event {
+func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	ev := new(Event)
 	ev.Assign(base, fd, events, callback, arg, MPri)
 	return ev
@@ -84,7 +84,7 @@ func New(base *EventBase, fd int, events uint32, callback func(fd int, events ui
 // Assign assigns the event.
 // It is used to reuse the event.
 // The event must be detached before it is assigned.
-func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg any), arg any, priority eventPriority) {
+func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}, priority eventPriority) {
 	ev.base = base
 	ev.fd = fd
 	ev.events = events
@@ -95,8 +95,8 @@ func (ev *Event) Assign(base *EventBase, fd int, events uint32, callback func(fd
 	ev.flags = 0
 	ev.timeout = 0
 	ev.deadline = time.Time{}
-	ev.ele = element[*Event]{}
-	ev.activeEle = element[*Event]{}
+	ev.ele = element{}
+	ev.activeEle = element{}
 	ev.index = -1
 }
 
@@ -158,9 +158,9 @@ type EventBase struct {
 	// poll is the event poller to watch events.
 	poll *poll
 	// evList is the list of all events.
-	evList *list[*Event]
+	evList *list
 	// activeEvList is the list of active events.
-	activeEvLists []*list[*Event]
+	activeEvLists []*list
 	// eventHeap is the min heap of timeout events.
 	evHeap *eventHeap
 	// nowTimeCache is the cache of now time.
@@ -175,8 +175,8 @@ func NewBase() (*EventBase, error) {
 		return nil, err
 	}
 	bs.poll = p
-	bs.evList = newList[*Event]()
-	bs.activeEvLists = []*list[*Event]{newList[*Event](), newList[*Event](), newList[*Event]()}
+	bs.evList = newList()
+	bs.activeEvLists = []*list{newList(), newList(), newList()}
 	bs.evHeap = new(eventHeap)
 	bs.nowTimeCache = time.Time{}
 	return bs, nil
@@ -283,7 +283,7 @@ func (bs *EventBase) handleActiveEvents() {
 	for i := range bs.activeEvLists {
 		for e := bs.activeEvLists[i].front(); e != nil; {
 			next := e.nextEle()
-			ev := e.value
+			ev := e.value.(*Event)
 			e = next
 			if ev.events&EvPersist != 0 {
 				bs.eventQueueRemove(ev, evListActive)

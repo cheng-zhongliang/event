@@ -21,7 +21,7 @@ const (
 )
 
 var evPool = sync.Pool{
-	New: func() any {
+	New: func() interface{} {
 		return new(fdEvent)
 	},
 }
