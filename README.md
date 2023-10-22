@@ -11,7 +11,7 @@
 <a title="License" target="_blank" href="https://github.com/cheng-zhongliang/event/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-brightgreen"></a>
 <a title="Release" target="_blank" href="https://github.com/cheng-zhongliang/event/releases"><img src="https://img.shields.io/github/v/release/cheng-zhongliang/event.svg?color=161823&logo=smartthings" /></a>
 <a title="Tag" target="_blank" href="https://github.com/cheng-zhongliang/event/tags"><img src="https://img.shields.io/github/v/tag/cheng-zhongliang/event?color=%23ff8936&logo=fitbit" /></a>
-<a title="Require Go Version" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-%3E%3D1.20-30dff3?logo=go" /></a>
+<a title="Require Go Version" target="_blank" href="https://github.com/cheng-zhongliang/event"><img src="https://img.shields.io/badge/go-%3E%3D1.13-30dff3?logo=go" /></a>
 <a title="Mentioned in Awesome Go" target="_blank" href="https://github.com/avelino/awesome-go#networking"><img src="https://awesome.re/mentioned-badge.svg" /></a>
 <a title="Stars" target="_blank" href="https://starchart.cc/cheng-zhongliang/event"><img alt="Stars" src="https://img.shields.io/github/stars/cheng-zhongliang/event.svg?style=social"></a>
 </p>
