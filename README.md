@@ -121,17 +121,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	fd := socket()
 	ev := event.New(base, fd, event.EvRead|event.EvPersist, accept, base)
 	if err := ev.Attach(0); err != nil {
 		panic(err)
 	}
-
 	if err := base.Dispatch(); err != nil && err != syscall.EBADF {
 		panic(err)
 	}
-
 	syscall.Close(fd)
 }
 
@@ -153,12 +150,10 @@ func socket() int {
 
 func accept(fd int, events uint32, arg interface{}) {
 	base := arg.(*event.EventBase)
-
 	clientFd, _, err := syscall.Accept(fd)
 	if err != nil {
 		panic(err)
 	}
-
 	ev := event.New(base, clientFd, event.EvRead|event.EvPersist, echo, nil)
 	if err := ev.Attach(0); err != nil {
 		panic(err)
