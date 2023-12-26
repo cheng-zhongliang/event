@@ -18,20 +18,18 @@ const (
 
 	// EvPersist is persistent behavior option.
 	EvPersist = 1 << iota
-	// EvET is edge-triggered behavior option.
-	EvET = 1 << iota
 
 	// EvLoopOnce is the flag to control event base loop just once.
 	EvLoopOnce = 001
 	// EvLoopNoblock is the flag to control event base loop not block.
 	EvLoopNoblock = 002
 
-	// HPri is the high priority.
-	HPri eventPriority = 0b00
-	// MPri is the middle priority.
-	MPri eventPriority = 0b01
-	// LPri is the low priority.
-	LPri eventPriority = 0b10
+	// HP is the high priority.
+	HP eventPriority = 0b00
+	// MP is the middle priority.
+	MP eventPriority = 0b01
+	// LP is the low priority.
+	LP eventPriority = 0b10
 
 	// evListInserted is the flag to indicate the event is in the event list.
 	evListInserted = 0x01
@@ -74,10 +72,10 @@ type Event struct {
 	priority eventPriority
 }
 
-// New creates a new event with default priority MPri.
+// New creates a new event with default priority MP.
 func New(base *EventBase, fd int, events uint32, callback func(fd int, events uint32, arg interface{}), arg interface{}) *Event {
 	ev := new(Event)
-	ev.Assign(base, fd, events, callback, arg, MPri)
+	ev.Assign(base, fd, events, callback, arg, MP)
 	return ev
 }
 

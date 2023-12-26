@@ -27,7 +27,6 @@ The goal of `event` is to provide a `BASIC` tool for building high performance n
 - Supports Read/Write/Timeout events
 - Flexible timer event and ticker event
 - Supports event priority
-- Edge-triggered option
 - Simple API
 - Low memory usage
 
@@ -54,12 +53,6 @@ The event is one-shot by default. If you want to persist, you can set the `EvPer
 
 ```go
 ev := event.New(base, fd, event.EvRead|event.EvPersist, callback, arg)
-```
-
-The event is level-triggered by default. If you want to use edge-triggered, you can set the `EvET` option.
-
-```go
-ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
 ```
 
 ### Read/Write/Timeout
@@ -100,7 +93,7 @@ When events are triggered together, high priority events will be dispatched firs
 
 ```go
 ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
-ev.SetPriority(event.HPri)
+ev.SetPriority(event.HP)
 ```
 
 ### Usage

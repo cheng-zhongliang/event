@@ -302,7 +302,7 @@ func TestPriority(t *testing.T) {
 		syscall.Read(fds1[0], make([]byte, 8))
 		triggerTime1 = int(time.Now().UnixMicro())
 	}, "hello")
-	ev1.SetPriority(HPri)
+	ev1.SetPriority(HP)
 
 	err = ev0.Attach(0)
 	if err != nil {
@@ -327,54 +327,6 @@ func TestPriority(t *testing.T) {
 	syscall.Close(fds[1])
 	syscall.Close(fds1[0])
 	syscall.Close(fds1[1])
-}
-
-func TestEdgeTrigger(t *testing.T) {
-	base, err := NewBase()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = syscall.Write(fds[1], []byte{0, 0, 0, 0, 0, 0, 0, 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	n := 0
-	ev := New(base, fds[0], EvRead|EvTimeout|EvPersist|EvET, func(fd int, events uint32, arg interface{}) {
-		if events&EvTimeout != 0 {
-			if err := base.Shutdown(); err != nil {
-				t.Fatal(err)
-			}
-			return
-		}
-		if events&EvET == 0 {
-			t.FailNow()
-		}
-		n++
-	}, "hello")
-
-	err = ev.Attach(10 * time.Millisecond)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = base.Dispatch()
-	if err != nil && err != syscall.EBADF {
-		t.Fatal(err)
-	}
-
-	if n != 1 {
-		t.FailNow()
-	}
-
-	syscall.Close(fds[0])
-	syscall.Close(fds[1])
 }
 
 func BenchmarkEventAdd(b *testing.B) {

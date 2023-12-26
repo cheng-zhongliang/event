@@ -17,7 +17,6 @@ import (
 const (
 	initialNEvent = 0x20
 	maxNEvent     = 0x1000
-	maxUint32     = 0xFFFFFFFF
 )
 
 var evPool = sync.Pool{
@@ -29,7 +28,6 @@ var evPool = sync.Pool{
 type fdEvent struct {
 	r   *Event
 	w   *Event
-	et  uint8
 	evs uint32
 }
 
@@ -60,7 +58,6 @@ func (ep *poll) add(ev *Event) error {
 		es = evPool.Get().(*fdEvent)
 		ep.fdEvents[ev.fd] = es
 	}
-
 	if ev.events&EvRead != 0 {
 		es.r = ev
 		es.evs |= syscall.EPOLLIN
@@ -69,21 +66,13 @@ func (ep *poll) add(ev *Event) error {
 		es.w = ev
 		es.evs |= syscall.EPOLLOUT
 	}
-	if ev.events&EvET != 0 {
-		es.et++
-		es.evs |= syscall.EPOLLET & maxUint32
-	}
-
 	epEv := syscall.EpollEvent{Events: es.evs}
-
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
-
 	return syscall.EpollCtl(ep.fd, op, ev.fd, &epEv)
 }
 
 func (ep *poll) del(ev *Event) error {
 	es := ep.fdEvents[ev.fd]
-
 	if ev.events&EvRead != 0 {
 		es.r = nil
 		es.evs &^= syscall.EPOLLIN
@@ -92,12 +81,6 @@ func (ep *poll) del(ev *Event) error {
 		es.w = nil
 		es.evs &^= syscall.EPOLLOUT
 	}
-	if ev.events&EvET != 0 {
-		if es.et--; es.et == 0 {
-			es.evs &^= syscall.EPOLLET & maxUint32
-		}
-	}
-
 	op := syscall.EPOLL_CTL_DEL
 	if es.evs&(syscall.EPOLLIN|syscall.EPOLLOUT) == 0 {
 		delete(ep.fdEvents, ev.fd)
@@ -105,11 +88,8 @@ func (ep *poll) del(ev *Event) error {
 	} else {
 		op = syscall.EPOLL_CTL_MOD
 	}
-
 	epEv := syscall.EpollEvent{Events: es.evs}
-
 	*(**fdEvent)(unsafe.Pointer(&epEv.Fd)) = es
-
 	return syscall.EpollCtl(ep.fd, op, ev.fd, &epEv)
 }
 
@@ -118,35 +98,29 @@ func (ep *poll) wait(cb func(ev *Event, res uint32), timeout time.Duration) erro
 	if err != nil && !temporaryErr(err) {
 		return err
 	}
-
 	for i := 0; i < n; i++ {
 		var evRead, evWrite *Event
 		what := ep.events[i].Events
 		es := *(**fdEvent)(unsafe.Pointer(&ep.events[i].Fd))
-
 		if what&(syscall.EPOLLERR|syscall.EPOLLHUP) != 0 {
 			what |= syscall.EPOLLIN | syscall.EPOLLOUT
 		}
-
 		if what&syscall.EPOLLIN != 0 {
 			evRead = es.r
 		}
 		if what&syscall.EPOLLOUT != 0 {
 			evWrite = es.w
 		}
-
 		if evRead != nil {
-			cb(evRead, evRead.events&(EvRead|EvET))
+			cb(evRead, evRead.events&EvRead)
 		}
 		if evWrite != nil {
-			cb(evWrite, evWrite.events&(EvWrite|EvET))
+			cb(evWrite, evWrite.events&EvWrite)
 		}
 	}
-
 	if n == len(ep.events) && n < maxNEvent {
 		ep.events = make([]syscall.EpollEvent, n<<1)
 	}
-
 	return nil
 }
 
