@@ -92,7 +92,7 @@ ev.Attach(time.Second)
 When events are triggered together, high priority events will be dispatched first.
 
 ```go
-ev := event.New(base, fd, event.EvRead|event.EvET, callback, arg)
+ev := event.New(base, fd, event.EvRead, callback, arg)
 ev.SetPriority(event.HP)
 ```
 
