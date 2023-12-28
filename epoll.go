@@ -94,7 +94,11 @@ func (ep *poll) del(ev *Event) error {
 }
 
 func (ep *poll) wait(cb func(ev *Event, res uint32), timeout time.Duration) error {
-	n, err := syscall.EpollWait(ep.fd, ep.events, int(timeout.Milliseconds()))
+	ms := -1
+	if timeout >= 0 {
+		ms = int(timeout.Milliseconds())
+	}
+	n, err := syscall.EpollWait(ep.fd, ep.events, ms)
 	if err != nil && !temporaryErr(err) {
 		return err
 	}
