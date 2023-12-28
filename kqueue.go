@@ -75,8 +75,12 @@ func (kq *poll) del(ev *Event) error {
 }
 
 func (kq *poll) wait(cb func(ev *Event, res uint32), timeout time.Duration) error {
-	ts := syscall.NsecToTimespec(timeout.Nanoseconds())
-	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, &ts)
+	var timespec *syscall.Timespec
+	if timeout >= 0 {
+		ts := syscall.NsecToTimespec(timeout.Nanoseconds())
+		timespec = &ts
+	}
+	n, err := syscall.Kevent(kq.fd, kq.changes, kq.events, timespec)
 	if err != nil && !temporaryErr(err) {
 		return err
 	}
