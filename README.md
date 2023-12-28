@@ -33,6 +33,7 @@ The goal of `event` is to provide a `BASIC` tool for building high performance n
 ## Getting Started
 
 ### Installing
+
 To start using `event`, just run `go get`:
 
 ```sh
@@ -47,6 +48,18 @@ $ go get -u github.com/cheng-zhongliang/event
 
 When the event is triggered, the callback function will be called.
 
+### Read/Write/Timeout
+
+These events can be used in combination.
+
+```go
+base := event.NewBase()
+ev := event.New(base, fd, event.EvRead|event.Timeout, callback, arg)
+ev.Attach(time.Second)
+```
+
+When the fd is readable or timeout expires, this event will be triggered.
+
 ### Option
 
 The event is one-shot by default. If you want to persist, you can set the `EvPersist` option.
@@ -54,18 +67,6 @@ The event is one-shot by default. If you want to persist, you can set the `EvPer
 ```go
 ev := event.New(base, fd, event.EvRead|event.EvPersist, callback, arg)
 ```
-
-### Read/Write/Timeout
-
-These events can be used in combination.
-
-```go
-base := event.NewBase()
-ev := event.New(base, fd, event.EvRead|event.Timeout|event.EvPersist, callback, arg)
-ev.Attach(time.Second)
-```
-
-When the fd is readable or timeout expires, this event will be triggered.
 
 ### Timer
 
